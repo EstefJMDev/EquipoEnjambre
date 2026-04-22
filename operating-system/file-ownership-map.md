@@ -31,3 +31,10 @@ especifica.
 | `operating-system/handoff-template.md` | Handoff Manager | Context Guardian, QA Auditor | Plantilla canonica de transferencias. |
 | `operating-system/templates/*` | Handoff Manager | QA Auditor, Context Guardian | Plantillas operativas reutilizables. |
 | `agents/*.md` | Owner del agente | Orchestrator, QA Auditor | Cada agente gobierna su mandato; Orchestrator alinea el sistema. |
+| `operations/orchestration-decisions/*` | Orchestrator | Context Guardian, QA Auditor | Decisiones de orquestacion activas. Autoridad operativa del ciclo. |
+| `operations/backlogs/*` | Functional Analyst | Phase Guardian, QA Auditor | Backlog funcional por fase. Un archivo por fase activa. |
+| `operations/architecture-notes/*` | Technical Architect | Privacy Guardian, Phase Guardian | Notas de limite arquitectonico por fase. Solo conceptual, nunca implementativo. |
+| `operations/qa-reviews/*` | QA Auditor | Orchestrator, Context Guardian | Revisiones de coherencia. Hallazgos y estado de checklists por ciclo. |
+| `operations/handoffs/*` | Handoff Manager | Context Guardian, QA Auditor | Handoffs operativos entre agentes. Usan plantilla canonica. |
+| `operations/phase-integrity-reviews/*` | Phase Guardian | QA Auditor, Context Guardian | Revisiones de integridad de fase. Una por ciclo relevante. |
+| `operations/task-specs/*` | Agente designado en el backlog de fase activa | Phase Guardian, QA Auditor | Especificaciones operativas de tarea. El owner es el agente asignado a la tarea en el backlog. |

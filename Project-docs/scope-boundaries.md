@@ -30,6 +30,7 @@ No incluye:
 * LLM local
 * Privacy Dashboard completo
 * validación de PMF
+* Panel B del workspace (entra en Fase 1)
 
 ### Fase 0b
 
@@ -52,6 +53,7 @@ No incluye:
 * Explainability Log
 * Privacy Dashboard completo
 * backend propia
+* Panel B del workspace (entra en Fase 1)
 
 ### Fase 1
 

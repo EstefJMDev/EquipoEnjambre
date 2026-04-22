@@ -22,6 +22,12 @@ Definir qué valida cada fase, qué no valida y qué errores de interpretación 
 ### Riesgo de interpretación
 Confundir entusiasmo por una demo retroactiva con validación del producto real.
 
+### Workspace en esta fase
+El workspace de 0a contiene Panel A y Panel C únicamente.
+Panel B (resumen) no se construye en 0a ni en 0b.
+Panel B entra en Fase 1 junto con el segundo caso de uso local.
+Cualquier entregable de 0a que incluya Panel B debe bloquearse como contaminación de fase.
+
 ## Fase 0b
 
 ### Qué valida
@@ -40,6 +46,12 @@ Confundir entusiasmo por una demo retroactiva con validación del producto real.
 
 ### Riesgo de interpretación
 Aceptar un flujo técnicamente correcto pero sin impacto emocional suficiente.
+
+### Workspace en esta fase
+El workspace que el usuario encuentra al abrir desktop en 0b contiene Panel A y Panel C.
+Panel B no se introduce en 0b.
+La ausencia de Panel B no invalida el wow moment: el valor de 0b depende del puente móvil→desktop, no del resumen.
+Panel B entra en Fase 1. Cualquier entregable de 0b que incluya Panel B debe bloquearse como contaminación de fase.
 
 ## Fase 1
 

@@ -24,7 +24,7 @@ shell desktop para 0a, 0b y Fase 1 sin producir codigo del producto.
   * 3
   * V1
   * V2
-* default_state: LISTENING
+* default_state: ACTIVE
 * possible_states:
 
   * ACTIVE
