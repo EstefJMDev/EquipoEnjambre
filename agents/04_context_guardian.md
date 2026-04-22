@@ -41,6 +41,7 @@ Su misión es:
 
   * ACTIVE
   * LISTENING
+  * LOCKED
   * ARCHIVAL
 * activation_conditions:
 

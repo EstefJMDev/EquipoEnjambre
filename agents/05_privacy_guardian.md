@@ -39,6 +39,7 @@ Proteger la privacidad verificable por diseño de FlowWeaver durante todas las f
 
   * ACTIVE
   * LISTENING
+  * LOCKED
   * ARCHIVAL
 * activation_conditions:
 
@@ -98,8 +99,8 @@ Debe leer:
 * `project-docs/risk-register.md`
 * `operating-system/review-checklists.md`
 * outputs del Technical Architect
-* outputs del Sync Specialist cuando exista
-* outputs del Constraint-Solving Specialist cuando existan fallbacks o degradaciones
+* outputs del Sync & Pairing Specialist cuando exista
+* outputs del Constraint-Solving & Fallback Strategy Specialist cuando existan fallbacks o degradaciones
 
 # Outputs
 

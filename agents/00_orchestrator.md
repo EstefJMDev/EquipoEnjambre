@@ -43,6 +43,8 @@ Su misión es:
 * possible_states:
 
   * ACTIVE
+  * LISTENING
+  * LOCKED
   * ARCHIVAL
 * activation_conditions:
 

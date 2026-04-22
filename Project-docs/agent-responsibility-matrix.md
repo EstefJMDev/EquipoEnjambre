@@ -1,23 +1,22 @@
-# FlowWeaver — Agent Responsibility Matrix
+# FlowWeaver - Agent Responsibility Matrix
 
-Define una matriz RACI simplificada para los agentes del sistema.
+## Regla
 
-Columnas:
-- Agent
-- Owns
-- Can Review
-- Must Be Consulted
-- Must Escalate To
-- Forbidden Zones
-- Required Inputs
-- Allowed Outputs
+Cada dominio tiene un solo owner principal.
+Los roles consultados o revisores no crean co-ownership.
 
-Objetivo:
-- evitar solapes
-- evitar vacíos
-- evitar agentes decorativos
-- hacer explícitos los límites operativos
-
-Regla:
-Ningún agente debe quedar definido solo por “ayuda”, “supervisa” o “colabora”.
-Cada agente debe tener mandato operativo concreto y zonas prohibidas claras.
+| Agent | Owns | Can Review | Must Be Consulted | Must Escalate To | Forbidden Zones | Required Inputs | Allowed Outputs |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Orchestrator | secuencia, activacion, arbitraje, cierre | todo el sistema | QA Auditor, Phase Guardian, Context Guardian | change control formal mas guardians afectados cuando se tocan decisiones cerradas | arquitectura de detalle, implementacion del producto | `AGENTS.md`, matriz de activacion, matriz de responsabilidad, roadmap, decisions log | decisiones operativas, bloqueos, activaciones, escalados |
+| Functional Analyst | scope por fase, backlog documental, criterios de aceptacion | roadmap, scope, fases, tareas | Orchestrator, Technical Architect, QA Auditor | Orchestrator | stack tecnico, criptografia, implementacion | `project-docs/vision.md`, `project-docs/product-thesis.md`, `project-docs/roadmap.md`, `project-docs/phase-definition.md` | breakdowns funcionales, criterios de aceptacion, limites in/out |
+| Technical Architect | arquitectura conceptual, contratos modulares, limites estructurales | scope, roadmap, docs tecnicos | Functional Analyst, Privacy Guardian | Orchestrator | codigo funcional del producto, UX final, decisiones de negocio | `project-docs/decisions-log.md`, `project-docs/architecture-overview.md`, `project-docs/module-map.md` | decisiones de arquitectura, notas modulares, limites tecnicos |
+| QA Auditor | auditoria de coherencia, DoD, gate reviews | todo entregable relevante | Functional Analyst, Technical Architect | Orchestrator | redefinir requisitos o arquitectura | `operating-system/definition-of-done.md`, `operating-system/review-checklists.md`, outputs previos | auditorias, bloqueos, revisiones de gate |
+| Context Guardian | trazabilidad, estado documental, sincronizacion de contexto | todo documento normativo | Orchestrator, Handoff Manager | Orchestrator | inventar decisiones, cambiar scope | `project-docs/decisions-log.md`, `project-docs/roadmap.md`, handoffs | context updates, consistency alerts, changelogs |
+| Privacy Guardian | narrativa verificable, minimizacion de datos, limites del dashboard | arquitectura, riesgo, sync, texto de privacidad | Technical Architect, Sync & Pairing Specialist | Orchestrator | backlog general, cierre de fase en solitario | `project-docs/decisions-log.md`, `project-docs/architecture-overview.md`, `project-docs/risk-register.md` | privacy reviews, alerts, notas de limite de datos |
+| Phase Guardian | integridad de fase, phase gates, control de contaminacion temporal | roadmap, backlog, matriz de activacion | Functional Analyst, QA Auditor | Orchestrator | arquitectura detallada, cambios de roadmap sin proceso | `project-docs/roadmap.md`, `project-docs/phase-definition.md`, `operating-system/phase-gates.md` | phase reviews, activation corrections |
+| Handoff Manager | estructura de handoff, transferencia de continuidad, ownership transicional | cualquier transferencia entre agentes | Context Guardian, QA Auditor | Orchestrator | contenido tecnico sustantivo, cierre de fase | `operating-system/handoff-template.md`, `operating-system/collaboration-protocol.md`, outputs previos | standard handoffs, handoff rejections, continuity notes |
+| Constraint-Solving & Fallback Strategy Specialist | contingencias compatibles bajo bloqueo | arquitectura, fase, privacidad, sync | Technical Architect, Privacy Guardian, Phase Guardian | Orchestrator | redisenio del producto, normalizacion permanente de workarounds | `project-docs/decisions-log.md`, `project-docs/risk-register.md`, `project-docs/phase-definition.md` | fallback notes, analisis de trade-offs, estrategias de contencion |
+| Desktop Tauri Shell Specialist | sub-specs del shell desktop y del workspace | estructura desktop, paneles, limites desktop en 0a y 1 | Technical Architect, Functional Analyst | Orchestrator | sync, captura iOS, backend, codigo del producto | `project-docs/module-map.md`, `project-docs/architecture-overview.md`, `project-docs/roadmap.md` | specs del shell desktop, limites de paneles, riesgos desktop |
+| iOS Share Extension Specialist | observer MVP en iOS y contrato de captura explicita | docs de captura y reglas de payload | Technical Architect, Privacy Guardian | Orchestrator | scope desktop, backend, watcher desktop, codigo del producto | `project-docs/module-map.md`, `project-docs/decisions-log.md`, `project-docs/scope-boundaries.md` | contratos de captura, limites de payload, criterios de validacion |
+| Session & Episode Engine Specialist | documentacion de Session Builder y Episode Detector | contratos de deteccion, broad/precise mode, criterios de episodio | Technical Architect, Functional Analyst, QA Auditor | Orchestrator | Pattern Detector antes de Fase 2, codigo del motor | `project-docs/module-map.md`, `project-docs/roadmap.md`, `project-docs/phase-definition.md` | contratos de deteccion, notas de heuristica, matrices de revision |
+| Sync & Pairing Specialist | documentacion de relay cifrado MVP, pairing y fallback QR | sync, privacidad, resiliencia | Technical Architect, Privacy Guardian, QA Auditor | Orchestrator | sync con backend propia, P2P en MVP, codigo del producto | `project-docs/decisions-log.md` entradas D6/D7/D18, `project-docs/risk-register.md` | notas de protocolo sync, matrices de failure modes, handoffs tecnicos |

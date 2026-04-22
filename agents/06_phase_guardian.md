@@ -43,6 +43,7 @@ Proteger la secuencia y el sentido del roadmap de FlowWeaver, asegurando que cad
 
   * ACTIVE
   * LISTENING
+  * LOCKED
   * ARCHIVAL
 * activation_conditions:
 

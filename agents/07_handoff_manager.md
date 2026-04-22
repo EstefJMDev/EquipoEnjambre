@@ -39,6 +39,7 @@ Garantizar que toda transferencia importante entre agentes sea:
 
   * ACTIVE
   * LISTENING
+  * LOCKED
   * ARCHIVAL
 * activation_conditions:
 
@@ -86,7 +87,7 @@ Garantizar que toda transferencia importante entre agentes sea:
 Debe leer:
 
 * `AGENTS.md`
-* `project-docs/handoff-template.md`
+* `operating-system/handoff-template.md`
 * `operating-system/collaboration-protocol.md`
 * handoffs previos
 * outputs del Orchestrator
@@ -215,7 +216,7 @@ Además de usar la plantilla estándar:
 
 Influye especialmente sobre:
 
-* `project-docs/handoff-template.md`
+* `operating-system/handoff-template.md`
 * `operating-system/collaboration-protocol.md`
 * continuidad de tareas multi-agente
 * calidad de las transferencias entre agentes
@@ -231,7 +232,7 @@ Influye especialmente sobre:
 
 # Example Tasks
 
-* rechazar un handoff del Architect al Sync Specialist por faltar restricciones de fase
+* rechazar un handoff del Architect al Sync & Pairing Specialist por faltar restricciones de fase
 * normalizar el traspaso de QA a Orchestrator tras una auditoría negativa
 * exigir que una propuesta de fallback indique si es temporal o estructural
 * revisar que una transferencia sobre bookmarks no los convierta en caso núcleo

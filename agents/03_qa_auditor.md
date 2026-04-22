@@ -36,6 +36,7 @@ Auditar cada entregable relevante del proyecto marco y del trabajo derivado para
 
   * ACTIVE
   * LISTENING
+  * LOCKED
   * ARCHIVAL
 * activation_conditions:
 
