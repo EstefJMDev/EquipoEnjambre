@@ -5,101 +5,105 @@
 El proyecto debe proteger el foco del MVP.
 El caso de uso núcleo es exclusivamente el puente móvil → desktop.
 
-Este repositorio protege ese foco a nivel de sistema multiagente.
-No implementa el producto.
-
-## Qué está en scope de este repo
-
-- definición de agentes
-- activación de agentes por fase
-- contratos operativos
-- handoffs
-- escalado
-- control de cambios
-- revisión y auditoría
-- trazabilidad
-- plantillas operativas
-- matrices de responsabilidad y activación
-
-## Qué NO está en scope de este repo
-
-- implementación del producto
-- estructura de apps del producto
-- módulos desktop/mobile/sync
-- código de Episode Detector
-- código de workspace
-- código de sync
-- modelos de datos ejecutables del producto
-- contratos de build, deploy o runtime del producto
-
-## Contexto de producto por fase
+## In-scope por fase
 
 ### Fase 0a
-Incluye, a nivel de producto:
-- desktop standalone
-- lectura local de bookmarks
-- agrupación básica
-- Panel A + C
-- almacenamiento local cifrado
+
+Incluye:
+
+* app desktop Tauri mínima
+* lectura local de bookmarks Safari/Chrome
+* clasificación por dominio/categoría
+* agrupación por similitud básica
+* Workspace UI con Panel A + Panel C
+* SQLCipher para almacenamiento local
+* demostración de valor del contenedor workspace
 
 No incluye:
-- móvil
-- sync
-- Episode Detector real
-- Pattern Detector
-- Trust Scorer
-- LLM local
-- Privacy Dashboard completo
+
+* móvil
+* Share Extension
+* sync
+* Episode Detector real
+* Pattern Detector
+* Trust Scorer
+* LLM local
+* Privacy Dashboard completo
+* validación de PMF
 
 ### Fase 0b
-Incluye, a nivel de producto:
-- Share Extension iOS
-- captura explícita de URLs
-- Session Builder
-- Episode Detector dual-mode
-- sync cifrada con ACK
-- fallback QR
-- Privacy Dashboard mínimo
-- testing E2E del momento mágico
+
+Incluye:
+
+* Share Extension iOS
+* captura explícita de URLs
+* Session Builder
+* Episode Detector dual-mode
+* sync iCloud/Google Drive relay cifrado con ACK, retries e idempotencia
+* fallback QR manual
+* Privacy Dashboard mínimo
+* testing E2E del momento mágico
 
 No incluye:
-- FS Watcher
-- Pattern Detector
-- Trust Scorer
-- Explainability Log
-- backend propia
+
+* FS Watcher
+* Pattern Detector
+* Trust Scorer
+* Explainability Log
+* Privacy Dashboard completo
+* backend propia
 
 ### Fase 1
+
 Incluye:
-- FS Watcher
-- adaptación del Episode Detector
-- Panel B con plantillas
+
+* FS Watcher `~/Downloads`
+* organización de descargas/screenshots
+* adaptación del Episode Detector
+* Panel B con plantillas
 
 ### Fase 2
+
 Incluye:
-- Pattern Detector
-- Trust Scorer
-- máquina de estados
-- Privacy Dashboard completo
-- lógica longitudinal de confianza
+
+* Pattern Detector
+* Trust Scorer
+* máquina de estados
+* Privacy Dashboard completo
+* lógica longitudinal de confianza
 
 ### Fase 3
+
 Incluye:
-- beta pública
-- métricas
-- calibración
-- LLM local opcional
+
+* beta pública
+* métricas
+* calibración de umbrales
+* LLM local opcional si aporta valor sin romper latencia o hardware
 
 ## Prohibiciones fuertes
 
-- no tratar bookmarks como caso núcleo
-- no decir que 0a valida PMF
-- no introducir observación activa en desktop durante MVP
-- no introducir backend propia en MVP
-- no introducir P2P como sync MVP
-- no adelantar Pattern Detector o Trust antes de Fase 2
-- no convertir LLM local en requisito del sistema
+* no tratar bookmarks como caso núcleo del producto
+* no decir que Fase 0a valida PMF
+* no introducir observación activa en desktop durante MVP
+* no introducir backend propia en MVP
+* no introducir P2P como sync MVP
+* no adelantar Pattern Detector o Trust antes de Fase 2
+* no convertir LLM local en requisito del sistema
 
-## Error de interpretación a bloquear en este repo
+## Errores de interpretación que deben evitarse
 
-Que los agentes conviertan documentación de contexto en implementación prematura del producto.
+1. Pensar que 0a ya valida el producto completo
+   Incorrecto: 0a valida solo el valor del formato workspace.
+
+2. Pensar que bookmarks retroactivos son el centro del producto
+   Incorrecto: son onboarding y cold start.
+
+3. Pensar que si sync falla se puede rediseñar el producto
+   Incorrecto: primero deben explorarse fallbacks compatibles.
+
+4. Pensar que broad mode sustituye el valor del precise mode
+   Incorrecto: broad mantiene utilidad, pero el wow depende del precise.
+
+5. Pensar que el LLM define el valor central
+   Incorrecto: el baseline funcional es con plantillas.
