@@ -42,6 +42,44 @@ normativas que el enjambre debe preservar.
 | D20 | Mobile como cliente completo | Desde Fase 0c, la app Android es un cliente completo: captura, procesa localmente (Classifier + Grouper + SQLCipher propio) y muestra galería organizada por categoría. El móvil no depende del desktop para entregar valor. Aprobado en CR-001 / OD-005. | El valor del producto debe estar disponible en el dispositivo donde ocurre la captura. Sin galería móvil, el usuario necesita el desktop para ver lo que guardó — rozamiento inaceptable para un producto de captura cotidiana. |
 | D21 | Sync bidireccional | Desde Fase 0c, el relay Google Drive es bidireccional: móvil → desktop (ya existe en 0b) + desktop → móvil (nuevo). Cada dispositivo tiene su propio SQLCipher y procesa de forma independiente. El relay transporta raw_events en ambas direcciones. No hay merge de bases de datos ni fuente de verdad única. Aprobado en CR-001 / OD-005. | El modelo local-first requiere que cada dispositivo sea soberano. El relay bidireccional sobre Google Drive (mecanismo ya probado en 0b) es la extensión más simple y coherente con D6. El merge de BD se evalúa en V1 si es necesario. |
 
+## Decisiones pendientes
+
+Estas decisiones están abiertas. Deben cerrarse antes de abrir la fase indicada. No pueden implementarse hasta que el Orchestrator las cierre formalmente.
+
+| ID | Área | Pregunta abierta | Cierre requerido antes de |
+|---|---|---|---|
+| D22 | Producto / Monetización | ¿Es FlowWeaver mobile un producto standalone con tier de pago? ¿Qué features incluye? ¿Qué es "workspace anticipado" en mobile? | Fase 3 |
+
+### D22 — Mobile standalone como tier de pago
+
+**Estado:** PENDIENTE  
+**Abierta:** 2026-04-24  
+**Cierre requerido antes de:** Fase 3 (beta pública)
+
+**Pregunta:**  
+¿Puede FlowWeaver funcionar como producto completo en mobile sin necesitar el desktop, ofrecido como tier de pago?
+
+**Contexto:**  
+Habrá usuarios que no tengan o no quieran el desktop. La app Android ya es un cliente completo desde Fase 0c (D20): captura, organiza y muestra galería. La pregunta es si el tier paid añade Pattern Detector + State Machine + Trust Scorer corriendo en el propio dispositivo, con una versión mobile del "workspace anticipado".
+
+**Opciones en discusión:**
+
+- **Opción A:** Mobile-only es solo organizador (free). El workspace anticipado requiere desktop siempre.
+- **Opción B:** Mobile-only tiene tier paid con Pattern Detector portado a Android (via NDK) + notificaciones proactivas como equivalente móvil del workspace anticipado.
+
+**Implicaciones si se elige Opción B:**
+- Pattern Detector, State Machine y Trust Scorer deben compilar para Android (la arquitectura Rust+NDK ya lo permite)
+- "Workspace anticipado" en mobile = notificaciones proactivas + agrupación contextual + deep links a apps relevantes
+- Modelo freemium: free (captura + organización) / paid (patrones + anticipación)
+- FS Watcher (D9) no aplica en mobile — no es una limitación, es un concepto de desktop irrelevante en este contexto
+- Añade un segmento de usuario nuevo: mobile-only power user
+- Google Drive sync sigue siendo el relay (D6) — no cambia
+
+**Agentes que deben preparar propuesta:** Functional Analyst + Technical Architect  
+**Decisor final:** Orchestrator
+
+---
+
 ## Regla operativa
 
 Si un documento posterior contradice este registro y no existe una propuesta

@@ -222,6 +222,11 @@ $checks = @(
     @{ cmd = "cargo --version";    label = "Cargo" },
     @{ cmd = "node --version";     label = "Node.js" },
     @{ cmd = "npm --version";      label = "npm" },
+    @{ cmd = "python --version";   label = "Python" },
+    @{ cmd = "perl --version";     label = "Perl" },
+    @{ cmd = "adb --version";      label = "ADB" },
+    @{ cmd = "ollama --version";   label = "Ollama" },
+    @{ cmd = "gh --version";       label = "GitHub CLI" },
     @{ cmd = "claude --version";   label = "Claude Code" }
 )
 

@@ -38,3 +38,6 @@ especifica.
 | `operations/handoffs/*` | Handoff Manager | Context Guardian, QA Auditor | Handoffs operativos entre agentes. Usan plantilla canonica. |
 | `operations/phase-integrity-reviews/*` | Phase Guardian | QA Auditor, Context Guardian | Revisiones de integridad de fase. Una por ciclo relevante. |
 | `operations/task-specs/*` | Agente designado en el backlog de fase activa | Phase Guardian, QA Auditor | Especificaciones operativas de tarea. El owner es el agente asignado a la tarea en el backlog. |
+| `docs/setup-entorno-dev.md` | Context Guardian | Cross-Repo Consistency Specialist | Guía de setup del entorno. Debe mantenerse en sync con setup.ps1 y CLAUDE.md. |
+| `setup.ps1` | Context Guardian | Cross-Repo Consistency Specialist | Script de setup automático. Debe cubrir las mismas herramientas que setup-entorno-dev.md. |
+| `CLAUDE.md` (EquipoEnjambre) | Context Guardian | Cross-Repo Consistency Specialist | Contexto de sesión. Sección stack debe reflejar versiones reales del entorno. |

@@ -199,6 +199,7 @@ Reglas adicionales:
 * `agents/10_ios_share_extension_specialist.md`
 * `agents/11_session_episode_engine_specialist.md`
 * `agents/12_sync_pairing_specialist.md`
+* `agents/14_cross_repo_consistency_specialist.md`
 
 ## 9. Estados Operativos De Agente
 

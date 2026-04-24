@@ -207,22 +207,46 @@ winget install --id Microsoft.VisualStudioCode -e
 
 ### Extensiones de VS Code a instalar
 
-Instalar estas extensiones después de abrir VS Code:
+Al abrir el workspace `EquipoEnjambre.code-workspace` en VS Code, las extensiones recomendadas se instalan automáticamente (definidas en `FlowWeaver/.vscode/extensions.json`). Para instalarlas manualmente:
 
 ```powershell
-# Extensiones recomendadas para este stack (instalar una a una o via marketplace)
+# Stack Tauri + Rust + React
 code --install-extension rust-lang.rust-analyzer
 code --install-extension tauri-apps.tauri-vscode
 code --install-extension dbaeumer.vscode-eslint
 code --install-extension esbenp.prettier-vscode
-code --install-extension bradlc.vscode-tailwindcss
 code --install-extension ms-vscode.vscode-typescript-next
 code --install-extension usernamehw.errorlens
+# Git
+code --install-extension eamodio.gitlens
+code --install-extension github.vscode-pull-request-github
+code --install-extension mhutchie.git-graph
 ```
 
 ---
 
-## 10. Herramientas globales de npm
+## 10. GitHub CLI
+
+```powershell
+winget install --id GitHub.cli -e
+```
+
+Autenticar después de instalar:
+
+```powershell
+gh auth login
+```
+
+Verificar:
+
+```powershell
+gh --version
+gh auth status
+```
+
+---
+
+## 11. Herramientas globales de npm
 
 ```powershell
 npm install -g @anthropic-ai/claude-code
@@ -242,7 +266,7 @@ npm install -g @qwen-code/qwen-code
 
 ---
 
-## 11. Ollama (modelos de IA local)
+## 12. Ollama (modelos de IA local)
 
 ```powershell
 winget install --id Ollama.Ollama -e
@@ -258,7 +282,7 @@ Los modelos descargados no se migran automáticamente — habrá que volver a de
 
 ---
 
-## 12. Otras aplicaciones instaladas
+## 13. Otras aplicaciones instaladas
 
 ```powershell
 winget install --id Docker.DockerDesktop -e
@@ -270,7 +294,7 @@ winget install --id Adobe.Acrobat.Reader.64-bit -e
 
 ---
 
-## 13. Verificación final del entorno
+## 14. Verificación final del entorno
 
 Ejecutar estos comandos en una terminal nueva para confirmar que todo está correcto:
 
@@ -282,9 +306,11 @@ rustup target list --installed
 node --version
 npm --version
 python --version
+perl --version
 adb --version
 claude --version
 ollama --version
+gh --version
 ```
 
 ### Verificación específica para Tauri Android
@@ -299,7 +325,7 @@ Test-Path $env:NDK_HOME
 
 ---
 
-## 14. Clonar y levantar el proyecto FlowWeaver
+## 15. Clonar y levantar el proyecto FlowWeaver
 
 ```powershell
 # Clonar el repo
