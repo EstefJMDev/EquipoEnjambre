@@ -284,6 +284,11 @@ flowweaver-relay/
       solo procesa de `desktop-<device_id>/`
 - [ ] Desktop no procesa eventos de `desktop-<device_id>/` (sus propios) —
       solo procesa de `android-<device_id>/`
+- [ ] los campos url y title de todos los recursos insertados en SQLite Android
+      desde el relay usan AES-256-GCM via Android Keystore — no XOR
+      (resolución de O-001 / R-0c-001; especificado en AR-0c-001 sección B)
+- [ ] los recursos ya insertados por T-0c-001 con XOR son migrados a AES-256-GCM
+      en la primera ejecución del Worker con T-0c-002 activo
 
 ---
 
