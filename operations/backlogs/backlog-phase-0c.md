@@ -284,11 +284,19 @@ flowweaver-relay/
       solo procesa de `desktop-<device_id>/`
 - [ ] Desktop no procesa eventos de `desktop-<device_id>/` (sus propios) —
       solo procesa de `android-<device_id>/`
-- [ ] los campos url y title de todos los recursos insertados en SQLite Android
-      desde el relay usan AES-256-GCM via Android Keystore — no XOR
-      (resolución de O-001 / R-0c-001; especificado en AR-0c-001 sección B)
-- [ ] los recursos ya insertados por T-0c-001 con XOR son migrados a AES-256-GCM
-      en la primera ejecución del Worker con T-0c-002 activo
+- [ ] el desktop emite raw_events (lado desktop — pendiente)
+- [x] el Android Worker lee `desktop-<device_id>/pending/`, procesa el raw_event
+      con el Classifier local y persiste en SQLite Android — DriveRelayWorker.kt
+      implementado (commit f83e4b4)
+- [x] Android escribe ACK en `desktop-<device_id>/acked/<event_id>.json` — implementado
+- [ ] el desktop lee `android-<device_id>/acked/` — lado desktop pendiente
+- [x] un mismo event_id no produce dos recursos — LocalDb.insertOrIgnore() en uuid
+- [x] Android no procesa eventos de su propio namespace — safety check en Worker
+- [ ] Desktop no procesa sus propios eventos — lado desktop pendiente
+- [x] los campos url y title usan AES-256-GCM fw1a — FieldCrypto.kt con clave
+      constante que Rust y Kotlin derivan idénticamente. fw2a (Keystore) descartado
+      per TA: clave hardware-bound no legible por Rust. Decisión documentada.
+- [x] los recursos con XOR son migrados a fw1a en primera ejecución del Worker
 
 ---
 
