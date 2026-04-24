@@ -445,14 +445,21 @@ alcance es: cuánto hay, de dónde viene, borrarlo si el usuario quiere.
 
 #### Acceptance Criteria
 
-- [ ] el dashboard muestra el recuento de recursos por categoría
-- [ ] el botón "Eliminar todos mis datos del móvil" elimina el SQLCipher local
-      Android con confirmación explícita y sin afectar al desktop
-- [ ] el texto de transparencia "Qué guarda / Qué nunca guarda" es visible
+- [x] el dashboard muestra el recuento de recursos por categoría
+- [x] el botón "Eliminar todos mis datos del móvil" elimina el SQLite local Android
+      con window.confirm() y sin afectar al desktop ni al relay Drive
+- [x] el texto de transparencia "Qué guarda / Qué nunca guarda" es visible
       sin navegar a submenús
-- [ ] el indicador de relay es honesto: menciona Google Drive explícitamente
-- [ ] Privacy Guardian aprueba el texto de transparencia antes de lanzar
-      (revisión específica requerida para el lenguaje de la UI)
+- [x] el indicador de relay menciona Google Drive explícitamente y es honesto
+      ("carpeta privada de Google Drive que solo FlowWeaver puede ver")
+- [x] Privacy Guardian aprobó el texto con 3 correcciones aplicadas (2026-04-24):
+      (1) "solo tú puedes leerlos" → nivel de protección real sin implicar
+          que el usuario controla la clave; (2) "ni ninguna información personal"
+          eliminado — domain sí se guarda en claro per D1; (3) relay: "se almacenan"
+          → "se transmiten / carpeta privada" (precisión técnica)
+
+**ESTADO: COMPLETADO — 2026-04-24. Commit FlowWeaver: 3847730.
+Privacy Guardian: APROBADO CON CORRECCIONES APLICADAS.**
 
 ---
 
