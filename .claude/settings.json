@@ -50,8 +50,6 @@
       "PowerShell(cd \"C:\\\\Users\\\\pinnovacion\\\\Desktop\\\\FlowWeaver\"; $env:PATH += \";$env:USERPROFILE\\\\.cargo\\\\bin\"; npm run tauri dev 2>&1)",
       "PowerShell(Get-ChildItem -Recurse \"C:\\\\Users\\\\pinnovacion\\\\Desktop\\\\EquipoEnjambre\" | Where-Object { -not $_.PSIsContainer } | Where-Object { $_.Extension -eq \".md\" } | Select-Object Name | Sort-Object Name)"
     ],
-    "additionalDirectories": [
-      "c:\\Users\\pinnovacion\\.claude\\projects\\c--Users-pinnovacion-Desktop-EquipoEnjambre\\memory"
-    ]
+    "additionalDirectories": []
   }
 }
