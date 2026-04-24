@@ -31,3 +31,7 @@ Thumbs.db
 # Codex/Git workaround: git dir stored in-worktree
 .gitdir/
 .git_old/
+
+# Claude Code — local-only files (settings.json is tracked; these are not)
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
