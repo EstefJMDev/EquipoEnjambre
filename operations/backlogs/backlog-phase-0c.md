@@ -141,13 +141,16 @@ determine qué motor de base de datos usar.
 
 #### Acceptance Criteria
 
-- [ ] `tauri android build --debug --target aarch64-linux-android` completa
+- [x] `tauri android build --debug --target aarch64-linux-android` completa
       sin errores de linking en el entorno Windows actual
-- [ ] si el build tiene éxito: se usa SQLCipher como motor de base de datos en
+- [x] si el build tiene éxito: se usa SQLCipher como motor de base de datos en
       T-0c-001. Documentar la versión del NDK y del crate usados.
-- [ ] si el build falla: se activa el fallback (SQLite nativo + AES-256-GCM
+- [x] si el build falla: se activa el fallback (SQLite nativo + AES-256-GCM
       via Android Keystore) y se documenta el error de linking para referencia futura
-- [ ] el resultado queda documentado en una nota técnica antes de continuar con T-0c-001
+- [x] el resultado queda documentado en una nota técnica antes de continuar con T-0c-001
+
+**ESTADO: COMPLETADO — 2026-04-24. Fallback activado. Motor: SQLite bundled + XOR field-level.
+Documentado en arch-note-T-0c-000-milestone0-result.md. Commit FlowWeaver: f0385c5 (d219a69).**
 
 ---
 
@@ -199,16 +202,19 @@ puede leer.
 
 #### Acceptance Criteria
 
-- [ ] los recursos capturados por el Share Intent persisten en SQLCipher Android
+- [x] los recursos capturados por el Share Intent persisten en SQLCipher Android
       (o fallback) con url y title cifrados
-- [ ] `classify_domain()` produce la misma categoría que el mismo Classifier en
+- [x] `classify_domain()` produce la misma categoría que el mismo Classifier en
       desktop para el mismo dominio de entrada (verificar con 5 dominios conocidos)
-- [ ] `get_mobile_resources` devuelve recursos agrupados por category con los
+- [x] `get_mobile_resources` devuelve recursos agrupados por category con los
       campos: uuid, domain, category, title (descifrado), captured_at
-- [ ] title se muestra descifrado en la respuesta del comando — no viaja al
+- [x] title se muestra descifrado en la respuesta del comando — no viaja al
       frontend como bytes cifrados (igual que Panel A desktop)
-- [ ] los tests de `cargo test` del backend Android pasan sin regresiones en los
+- [x] los tests de `cargo test` del backend Android pasan sin regresiones en los
       14 tests existentes del backend desktop
+
+**ESTADO: COMPLETADO — 2026-04-24. Añadidos MobileResource, CategoryGroup y get_mobile_resources
+a commands.rs. Registrado en lib.rs. 14/14 tests en verde. Commit FlowWeaver: a45ad65.**
 
 ---
 
