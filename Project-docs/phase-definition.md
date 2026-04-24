@@ -53,6 +53,31 @@ Panel B no se introduce en 0b.
 La ausencia de Panel B no invalida el wow moment: el valor de 0b depende del puente móvil→desktop, no del resumen.
 Panel B entra en Fase 1. Cualquier entregable de 0b que incluya Panel B debe bloquearse como contaminación de fase.
 
+## Fase 0c
+
+### Qué valida
+- que el usuario encuentra valor en el móvil sin abrir el desktop
+- que el móvil puede procesar y organizar sus propias capturas localmente
+- que el sync bidireccional funciona con dos emisores sin pérdida ni duplicación
+- que la galería de categorías es comprensible y útil para el usuario
+
+### Qué NO valida
+- workspace rico en móvil (el workspace narrativo sigue siendo patrimonio del desktop)
+- aprendizaje longitudinal en móvil (Fase 2 desktop primero)
+- automatización ni preparación silenciosa en móvil
+- sincronización en tiempo real
+- confianza progresiva ni State Machine en móvil
+
+### Riesgo de interpretación
+Confundir "cliente completo" con "paridad de funcionalidades con el desktop".
+Fase 0c da al móvil su propia galería organizada — no replica el workspace
+completo del desktop. El workspace rico (Panel B, Episode Detector, anticipación)
+sigue siendo el valor diferencial del desktop.
+
+### Workspace en esta fase
+No hay workspace narrativo en el móvil. Hay una galería: categorías → recursos.
+Tap en recurso → abre URL en navegador. Sin resumen, sin sugerencias, sin Panel B.
+
 ## Fase 1
 
 ### Qué valida

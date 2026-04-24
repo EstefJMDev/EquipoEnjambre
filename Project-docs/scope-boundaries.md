@@ -55,6 +55,27 @@ No incluye:
 * backend propia
 * Panel B del workspace (entra en Fase 1)
 
+### Fase 0c
+
+Incluye:
+
+* Pantalla de galería Android: lista de categorías con recursos capturados
+* Classifier + Grouper en Android (mismo Rust, compilado para Android vía Tauri 2)
+* SQLCipher local en Android (independiente del SQLCipher del desktop)
+* Google Drive relay bidireccional: raw_events fluyen en ambas direcciones
+* Privacy Dashboard mínimo en móvil: categorías, recuento de recursos, purga local
+
+No incluye:
+
+* workspace completo en móvil (Panel A, Panel B, Panel C)
+* Episode Detector en móvil
+* Pattern Detector en móvil (Fase 2 desktop primero)
+* Trust Scorer ni State Machine en móvil
+* sync en tiempo real (el relay sigue siendo async)
+* notificaciones push (requiere backend propia — prohibida en MVP)
+* vista embebida de contenido (Reels, videos) dentro de la app — solo URLs
+* iOS (track paralelo, requiere macOS)
+
 ### Fase 1
 
 Incluye:
