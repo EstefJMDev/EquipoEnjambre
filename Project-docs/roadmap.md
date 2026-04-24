@@ -27,20 +27,27 @@ La agrupación visual y el formato de workspace generan interés y comprensión 
 
 **Objetivo:** validar la hipótesis núcleo del puente móvil→desktop.
 
-**Entregables principales:**
+**Entregables principales (track Android — primario):**
+
+* Android Share Intent (Tauri 2 Android)
+* Session Builder ✅ implementado
+* Episode Detector dual-mode ✅ implementado
+* sync con Google Drive + ACK/idempotencia/retries
+* Privacy Dashboard mínimo ✅ implementado
+* testing E2E del momento mágico
+
+**Entregables pendientes (track iOS — secundario, requiere macOS):**
 
 * Share Extension iOS
-* Session Builder
-* Episode Detector dual-mode
-* sync con ACK/idempotencia/retries
-* Privacy Dashboard mínimo
-* testing E2E del momento mágico
+* Sync Layer vía iCloud
 
 **Hipótesis a validar:**
 Que el usuario abra el desktop y experimente espontáneamente el “ya me lo había preparado”.
 
 **Riesgo clave:**
-fiabilidad de iCloud sync y preservación del wow moment.
+fiabilidad de Google Drive sync y preservación del wow moment.
+
+**Plataforma primaria:** Android + Windows (D19). iOS continúa como track paralelo.
 
 ---
 
