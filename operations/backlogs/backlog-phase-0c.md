@@ -284,19 +284,27 @@ flowweaver-relay/
       solo procesa de `desktop-<device_id>/`
 - [ ] Desktop no procesa eventos de `desktop-<device_id>/` (sus propios) —
       solo procesa de `android-<device_id>/`
-- [ ] el desktop emite raw_events (lado desktop — pendiente)
+- [x] el desktop emite raw_events a Drive cuando se importan bookmarks o add_capture
+      — relay_events table + enqueue en commands.rs (commit 0ccc29c)
 - [x] el Android Worker lee `desktop-<device_id>/pending/`, procesa el raw_event
       con el Classifier local y persiste en SQLite Android — DriveRelayWorker.kt
       implementado (commit f83e4b4)
 - [x] Android escribe ACK en `desktop-<device_id>/acked/<event_id>.json` — implementado
-- [ ] el desktop lee `android-<device_id>/acked/` — lado desktop pendiente
-- [x] un mismo event_id no produce dos recursos — LocalDb.insertOrIgnore() en uuid
+- [x] el desktop lee `android-<device_id>/acked/` y marca eventos procesados —
+      drive_relay.rs run_relay_cycle() paso 2 (commit 0ccc29c)
+- [x] un mismo event_id no produce dos recursos — LocalDb.insertOrIgnore() (Android),
+      relay_events UNIQUE event_id + insert_or_ignore uuid (desktop)
 - [x] Android no procesa eventos de su propio namespace — safety check en Worker
-- [ ] Desktop no procesa sus propios eventos — lado desktop pendiente
+- [x] Desktop no procesa sus propios eventos — drive_relay lee solo android-<id>/pending/
 - [x] los campos url y title usan AES-256-GCM fw1a — FieldCrypto.kt con clave
       constante que Rust y Kotlin derivan idénticamente. fw2a (Keystore) descartado
       per TA: clave hardware-bound no legible por Rust. Decisión documentada.
 - [x] los recursos con XOR son migrados a fw1a en primera ejecución del Worker
+
+**ESTADO: IMPLEMENTADO — 2026-04-24. Commits FlowWeaver: f83e4b4 (Android), 0ccc29c (desktop).
+Pendiente: configuración OAuth Google Drive (prerequisito externo — usuario configura via
+configure_drive command). El relay no opera hasta que el usuario aporte client_id,
+client_secret, refresh_token y paired_android_id.**
 
 ---
 
