@@ -2,24 +2,57 @@
 
 request_id: CR-002
 owner_agent: Orchestrator
-change_type: Extensión de capacidad de captura — nuevo observer activo en Android
+change_type: Observer semi-pasivo Android + Pattern Detector mobile + tier paid
 date: 2026-04-24
-status: PENDIENTE DE DECISIÓN — requiere aprobación del Orchestrator
-triggered_by: Product owner — el usuario quiere que la app Android detecte y agrupe
-              automáticamente los enlaces que navega, no solo los que comparte explícitamente
-priority: MEDIA — no bloquea beta; requiere análisis profundo antes de implementar
+status: APROBADO EN INTENCIÓN — D22 cerrada con Opción B (2026-04-24).
+        Pendiente de AR del Technical Architect y revisión del Privacy Guardian
+        antes de ninguna implementación.
+triggered_by: Product owner — visión de producto: FlowWeaver mobile detecta cuando
+              el usuario está buscando algo de forma consistente (ej: recetas de tarta
+              de queso en 5 URLs en 15 min), infiere la intención y prepara el contexto
+              automáticamente. Esto es el tier paid del producto mobile.
+priority: ALTA — define el modelo de negocio del producto mobile
 
 ---
 
 ## Proposed Change
 
-Añadir a la app Android una capacidad de captura **pasiva o semi-pasiva**: detectar
-automáticamente las URLs que el usuario visita en el navegador móvil y procesarlas
-con el mismo pipeline (Classifier → Grouper → galería) que las capturas explícitas.
+**Este no es un CR de "capturar más URLs". Es el CR que define el producto mobile completo.**
 
-El usuario dejaría de necesitar la acción de "Compartir → FlowWeaver" para cada
-enlace. FlowWeaver observaría su actividad de navegación y organizaría el contenido
-de forma automática, igual que el FS Watcher hace en desktop con las apps abiertas.
+Añadir a FlowWeaver Android la capacidad de **inferir la intención del usuario a partir
+de su comportamiento de navegación**, dentro de una ventana temporal, y preparar el
+contexto automáticamente cuando hay suficiente señal.
+
+### El comportamiento concreto que se quiere
+
+El usuario abre el navegador y visita 5 páginas sobre recetas de tarta de queso en
+15 minutos. FlowWeaver detecta:
+
+1. Hay un **episodio de intención coherente** en curso
+2. La categoría dominante es `cooking` / `recipes`
+3. La coherencia temática supera el umbral de confianza del Trust Scorer
+4. → FlowWeaver agrupa el contenido, genera el contexto, y lo presenta proactivamente
+
+Si el usuario visita 5 páginas sobre temas completamente distintos en el mismo período,
+FlowWeaver **no hace nada** — no hay episodio coherente, no hay señal.
+
+### Lo que no es
+
+- No es "capturar todas las URLs que visito" (eso sería Opción A/B rechazadas en el análisis)
+- No es observación pasiva de todo el comportamiento del dispositivo
+- No es notificación intrusiva por cada URL
+- El umbral de coherencia es la diferencia entre una feature útil y un tracker molesto
+
+### Tier free vs tier paid (D22 aprobada)
+
+| Capacidad | Tier |
+|---|---|
+| Captura explícita (Share Intent) | Free |
+| Galería organizada + sync | Free |
+| Observer semi-pasivo (detección de episodio de navegación) | **Paid** |
+| Pattern Detector en Android (longitudinal) | **Paid** |
+| Anticipación proactiva (notificaciones contextuales) | **Paid** |
+| Resumen / generación de contexto del episodio | **Paid (LLM opcional — D8)** |
 
 ---
 
@@ -277,7 +310,24 @@ Windows. Las APIs equivalentes en Android requieren permisos de Accessibility
 
 ## Final Decision
 
-status: PENDIENTE
-decision_by: —
-date_decided: —
-outcome: —
+status: APROBADO EN INTENCIÓN
+decision_by: Orchestrator
+date_decided: 2026-04-24
+outcome: |
+  D22 cerrada con Opción B. FlowWeaver Mobile es un producto standalone con
+  modelo freemium. El tier paid incluye detección de intención por comportamiento
+  de navegación + Pattern Detector Android + anticipación proactiva.
+
+  La implementación técnica (observer semi-pasivo, opción C o E, integración con
+  Pattern Detector) requiere:
+  1. Privacy Guardian: validar que la opción elegida es compatible con D9 extendido
+     y con el posicionamiento de privacidad del tier paid
+  2. Technical Architect: AR formal definiendo el mecanismo del observer, los
+     umbrales del episodio detector en mobile, y cómo Pattern Detector compila
+     para Android via NDK
+  3. Functional Analyst: backlog de la fase que implemente esto (candidata: Fase 3
+     o una Fase 2-mobile paralela a Fase 2 desktop)
+
+  D9 debe extenderse formalmente antes de cualquier implementación del observer.
+  El Share Intent sigue siendo free y sigue siendo el mecanismo de captura
+  explícita — no se modifica ni elimina.

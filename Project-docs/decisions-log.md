@@ -41,42 +41,37 @@ normativas que el enjambre debe preservar.
 | D19 | Plataforma | Windows + Android first. iOS como track paralelo secundario cuando haya entorno macOS disponible. | El primer frente de clientes a abordar es Android + Windows. El entorno de desarrollo actual (Windows 10) permite compilar Tauri Android sin Mac. Tauri 2 soporta Android nativamente — el mismo backend Rust compila para ambas plataformas sin reescritura. |
 | D20 | Mobile como cliente completo | Desde Fase 0c, la app Android es un cliente completo: captura, procesa localmente (Classifier + Grouper + SQLCipher propio) y muestra galería organizada por categoría. El móvil no depende del desktop para entregar valor. Aprobado en CR-001 / OD-005. | El valor del producto debe estar disponible en el dispositivo donde ocurre la captura. Sin galería móvil, el usuario necesita el desktop para ver lo que guardó — rozamiento inaceptable para un producto de captura cotidiana. |
 | D21 | Sync bidireccional | Desde Fase 0c, el relay Google Drive es bidireccional: móvil → desktop (ya existe en 0b) + desktop → móvil (nuevo). Cada dispositivo tiene su propio SQLCipher y procesa de forma independiente. El relay transporta raw_events en ambas direcciones. No hay merge de bases de datos ni fuente de verdad única. Aprobado en CR-001 / OD-005. | El modelo local-first requiere que cada dispositivo sea soberano. El relay bidireccional sobre Google Drive (mecanismo ya probado en 0b) es la extensión más simple y coherente con D6. El merge de BD se evalúa en V1 si es necesario. |
+| D22 | FlowWeaver Mobile standalone — tier paid | Modelo freemium: free = captura explícita + galería. Paid = detección de intención por comportamiento de navegación + Pattern Detector Android + anticipación proactiva. "Workspace anticipado mobile" = detectar episodio de intención consistente (N URLs temáticamente coherentes en ventana temporal X) y presentar contexto sin que el usuario lo pida. Observer semi-pasivo Android requiere extensión de D9 (ver CR-002). Aprobado por Orchestrator 2026-04-24. | El usuario mobile-only merece el mismo valor de anticipación que el usuario desktop. La arquitectura Rust+NDK ya permite compilar Pattern Detector para Android. El tier paid es la diferenciación que hace FlowWeaver un producto de ingresos sostenibles. |
 
-## Decisiones pendientes
+## Decisiones cerradas recientemente
 
-Estas decisiones están abiertas. Deben cerrarse antes de abrir la fase indicada. No pueden implementarse hasta que el Orchestrator las cierre formalmente.
+| ID | Decisión | Fecha |
+|---|---|---|
+| D22 | Mobile standalone — Opción B (ver detalle abajo) | 2026-04-24 |
 
-| ID | Área | Pregunta abierta | Cierre requerido antes de |
-|---|---|---|---|
-| D22 | Producto / Monetización | ¿Es FlowWeaver mobile un producto standalone con tier de pago? ¿Qué features incluye? ¿Qué es "workspace anticipado" en mobile? | Fase 3 |
+### D22 — FlowWeaver Mobile como producto completo con tier paid
 
-### D22 — Mobile standalone como tier de pago
+**Estado:** CERRADA — Opción B aprobada por Orchestrator (2026-04-24)
 
-**Estado:** PENDIENTE  
-**Abierta:** 2026-04-24  
-**Cierre requerido antes de:** Fase 3 (beta pública)
+**Decisión:**  
+FlowWeaver Mobile es un producto standalone completo con modelo freemium:
 
-**Pregunta:**  
-¿Puede FlowWeaver funcionar como producto completo en mobile sin necesitar el desktop, ofrecido como tier de pago?
+- **Tier Free:** captura explícita (Share Intent) + galería organizada por categoría + sync bidireccional con desktop. Lo implementado en Fase 0c.
+- **Tier Paid:** detección de intención a partir del comportamiento de navegación + Pattern Detector en Android + anticipación proactiva (notificaciones contextuales) + resumen/agrupación de episodios de búsqueda.
 
-**Contexto:**  
-Habrá usuarios que no tengan o no quieran el desktop. La app Android ya es un cliente completo desde Fase 0c (D20): captura, organiza y muestra galería. La pregunta es si el tier paid añade Pattern Detector + State Machine + Trust Scorer corriendo en el propio dispositivo, con una versión mobile del "workspace anticipado".
+**Qué es "workspace anticipado" en mobile (definición cerrada):**  
+El usuario navega durante un período de tiempo con coherencia temática (ej: 5 URLs sobre recetas de tarta de queso en 15 minutos). FlowWeaver detecta el episodio de intención, agrupa el contenido, genera contexto y lo presenta sin que el usuario lo haya pedido. No es captura de URLs aleatorias — es inferencia de intención consistente sobre una ventana temporal.
 
-**Opciones en discusión:**
+**Implicaciones técnicas:**
+- Pattern Detector, Episode Detector y Trust Scorer compilados para Android via Tauri 2 + NDK (la arquitectura ya lo permite)
+- Observer semi-pasivo en Android para captura del input de navegación (D9 requiere extensión formal — ver CR-002)
+- Modelo freemium: el observer pasivo y la anticipación son tier paid; la captura explícita es siempre free
+- FS Watcher no aplica en mobile — el input es el comportamiento de navegación, no el filesystem
 
-- **Opción A:** Mobile-only es solo organizador (free). El workspace anticipado requiere desktop siempre.
-- **Opción B:** Mobile-only tiene tier paid con Pattern Detector portado a Android (via NDK) + notificaciones proactivas como equivalente móvil del workspace anticipado.
+**Segmento de usuario que abre:**  
+Mobile-only power user: persona que captura, investiga y consume contenido principalmente desde el teléfono y no necesita ni usa el desktop de FlowWeaver.
 
-**Implicaciones si se elige Opción B:**
-- Pattern Detector, State Machine y Trust Scorer deben compilar para Android (la arquitectura Rust+NDK ya lo permite)
-- "Workspace anticipado" en mobile = notificaciones proactivas + agrupación contextual + deep links a apps relevantes
-- Modelo freemium: free (captura + organización) / paid (patrones + anticipación)
-- FS Watcher (D9) no aplica en mobile — no es una limitación, es un concepto de desktop irrelevante en este contexto
-- Añade un segmento de usuario nuevo: mobile-only power user
-- Google Drive sync sigue siendo el relay (D6) — no cambia
-
-**Agentes que deben preparar propuesta:** Functional Analyst + Technical Architect  
-**Decisor final:** Orchestrator
+**Referencia:** CR-002 (observer móvil), Fase 3 (beta pública), V1 (LAN sync, features avanzadas)
 
 ---
 
