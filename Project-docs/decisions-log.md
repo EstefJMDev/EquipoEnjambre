@@ -27,7 +27,7 @@ normativas que el enjambre debe preservar.
 | D6 | Sync MVP | Relay cifrado por iCloud/Google Drive con ACK, idempotencia y reintentos. | Fiable, sin infraestructura propia y robusto ante race conditions. |
 | D7 | Migración de sync | LAN añade canal en V1; P2P requiere nuevo emparejamiento en V2+. | No se promete transparencia total. Los cambios se comunican. |
 | D8 | Motor de resumen | Plantillas como baseline; LLM como mejora opcional. | El baseline debe funcionar en cualquier hardware. |
-| D9 | Observer MVP | Único observer activo: Share Intent Android (primario); Share Extension iOS (track paralelo secundario). Desktop no observa en MVP. | Es el mínimo necesario para el caso dorado. FS Watcher entra en Fase 1. Plataforma primaria cambia a Android per D19. |
+| D9 | Observer MVP | Único observer activo: Share Intent Android (primario); Share Extension iOS (track paralelo secundario). Desktop no observa en MVP. **[EXTENDIDA 2026-04-27 — ver detalle abajo]** Observer semi-pasivo Android (tier paid) autorizado via Tile de sesión. **[REVISADA 2026-04-28 — ver detalle abajo]** FS Watcher desktop: modo background-persistent (no foreground-only). | Es el mínimo necesario para el caso dorado. FS Watcher entra en Fase 1. Plataforma primaria cambia a Android per D19. Extensión formal aprobada por AR-CR-002-mobile-observer + PGR-CR-002-mobile-observer. Revisión FS Watcher aprobada por Orchestrator 2026-04-28: el modelo foreground-only causaba pérdida de eventos al cambiar de foco. |
 | D10 | Roadmap | Fase 0 se divide en 0a workspace y 0b puente. Desktop nativo Tauri. | 0a valida formato; 0b valida el puente. Reduce riesgo. |
 | D11 | Plataforma | ~~macOS + iOS first.~~ **SUPERSEDIDA por D19.** | Supersedida por decisión estratégica de mercado. |
 | D12 | Foco MVP | Único caso: puente móvil -> desktop. Bookmarks son onboarding, no caso de uso núcleo. | Obliga a proteger un solo caso excepcional antes de ampliar. |
@@ -48,6 +48,83 @@ normativas que el enjambre debe preservar.
 | ID | Decisión | Fecha |
 |---|---|---|
 | D22 | Mobile standalone — Opción B (ver detalle abajo) | 2026-04-24 |
+| D9 extensión | Observer semi-pasivo Android (tier paid) via Tile de sesión | 2026-04-27 |
+| D9 revisión FS Watcher | FS Watcher desktop cambia a background-persistent (abandona foreground-only) | 2026-04-28 |
+
+### D9 — Revisión FS Watcher Desktop: Background-Persistent
+
+**Estado:** REVISADA — aprobada por Orchestrator (2026-04-28).
+
+**Cambio:**
+El FS Watcher desktop pasa de **foreground-only** a **background-persistent**.
+
+**Modelo anterior (TS-2-000 §2 original):**
+El watcher arrancaba al recibir `Focused(true)` y se detenía (RAII drop + purga de buffer)
+al recibir `Focused(false)`. La decisión original se justificó como mínimo necesario
+para cumplir D9 sin observación pasiva.
+
+**Modelo revisado:**
+El watcher arranca una única vez en el primer `Focused(true)` y permanece activo mientras
+el proceso de la app esté vivo, sin importar el estado de foco. No se detiene al perder
+el foco. El handle se mantiene en `FsWatcherState` y solo se libera al cerrar la app.
+
+**Motivo del cambio:**
+El modelo foreground-only provocaba pérdida de eventos del sistema de ficheros cuando el
+usuario cambiaba de ventana durante una sesión de trabajo (comportamiento habitual). Los
+eventos de creación/renombre ocurren precisamente cuando el usuario trabaja en otras apps
+(editor, terminal, explorador de ficheros), no cuando está mirando el dashboard de
+FlowWeaver. El modelo foreground-only hacía que el watcher se detuviera exactamente cuando
+más eventos se producen.
+
+**Impacto en implementación:**
+- `lib.rs`: `Focused(false)` ya no hace `*guard = None` ni purga el buffer.
+- `lib.rs`: `Focused(true)` solo arranca el watcher si `guard.is_none()` (arranque único).
+- `commands.rs`: `fs_watcher_activate_directory` y `fs_watcher_deactivate_directory` reinician
+  el watcher sin condicionar la operación a que haya un handle previo.
+- Commits: `ab1b192` (BUG A, FlowWeaver main, 2026-04-28).
+
+**Restricciones que no cambian:**
+- D9 sigue prohibiendo cualquier observer en background en mobile sin sesión explícita del usuario.
+- La observación desktop sigue limitada a directorios activados explícitamente por el usuario.
+- D1 sigue vigente: nunca se leen contenidos de fichero; solo nombre, extensión y directorio padre.
+- El FS Watcher no tiene acceso a urls ni titles (D1).
+
+---
+
+### D9 — Extensión: Observer Semi-Pasivo Android (Tier Paid)
+
+**Estado:** EXTENDIDA — aprobada por AR-CR-002-mobile-observer (Technical Architect,
+2026-04-27) y PGR-CR-002-mobile-observer (Privacy Guardian, 2026-04-27).
+
+**Extensión:**
+Además del Share Intent (que permanece como mecanismo free), el tier paid autoriza
+un segundo observer en Android basado en **Tile de sesión (Quick Settings tile)**.
+El observer semi-pasivo solo está activo mientras el tile esté encendido (sesión
+explícitamente iniciada por el usuario). Requiere foreground service con notificación
+visible durante la sesión activa. El foreground service se termina automáticamente
+al apagar el tile o al superar los timeouts de sesión mobile (`GAP_SECS = 2_700 s`,
+`MAX_WINDOW_SECS = 7_200 s`). El observer NO puede funcionar en background sin que
+el usuario haya activado la sesión explícitamente mediante el tile. Si el mecanismo
+técnico subyacente es un Intent handler (Opción C), el handler debe registrarse
+dinámicamente al activar el tile y desregistrarse al desactivarlo — nunca declarado
+estáticamente en AndroidManifest sin control de activación. Opciones permanentemente
+excluidas: Accessibility Service, historial del navegador, Intent handler siempre
+registrado sin control de inicio/fin de sesión.
+
+**Condiciones bloqueantes (deben cumplirse en implementación):**
+- B1: pantalla de consentimiento explícito antes del primer uso del tile
+- B2: handler dinámico verificable (no estático en AndroidManifest)
+- B3: D1 operativo en logs y persistencia (url/title nunca en texto plano)
+- B4: Privacy Dashboard mobile completo con sección específica del observer
+- B5: timeout automático de sesión (default 30 min, configurable 5 min–4 h)
+
+**Umbrales del Episode Detector mobile aprobados:**
+`GAP_SECS = 2_700 s`, `MAX_WINDOW_SECS = 7_200 s`, `PRECISE_MIN = 2`,
+`BROAD_MIN = 2`, `JACCARD_THRESHOLD = 0.20`. Módulo mobile separado obligatorio
+— sin condicionales de plataforma en `episode_detector.rs` desktop.
+
+**Referencia:** `operations/architecture-reviews/AR-CR-002-mobile-observer.md`,
+`operations/architecture-reviews/PGR-CR-002-mobile-observer.md`.
 
 ### D22 — FlowWeaver Mobile como producto completo con tier paid
 
