@@ -68,7 +68,8 @@ No deben tratarse como caso núcleo:
 - desktop no observa activamente en MVP
 - no hay FS Watcher en MVP
 - no hay Accessibility APIs en MVP
-- único observer activo del MVP = Share Extension iOS
+- observer primario del MVP = Share Intent Android (D19)
+- observer secundario en track paralelo = Share Extension iOS (requiere macOS)
 - no hay backend propia en MVP
 - sync MVP = iCloud Drive / Google Drive relay cifrado + fallback QR
 - Pattern Detector, Trust Scorer, State Machine y Explainability Log entran en Fase 2
@@ -78,8 +79,8 @@ No deben tratarse como caso núcleo:
 ## 6. Stack del MVP
 
 ### Observación móvil
-- Swift iOS
-- Share Extension
+- **Primario:** Kotlin Android — Share Intent (D19)
+- **Secundario (track paralelo, requiere macOS):** Swift iOS — Share Extension
 
 ### Desktop
 - Tauri 2
@@ -276,7 +277,8 @@ Objetivo:
 validar la hipótesis núcleo del puente móvil→desktop.
 
 Incluye:
-- Share Extension iOS
+- Share Intent Android (primario, D19)
+- Share Extension iOS (track paralelo, pendiente de macOS)
 - Session Builder
 - Episode Detector dual-mode
 - sync con ACK e idempotencia
@@ -296,6 +298,32 @@ Qué valida:
 - que el usuario sienta el “ya me lo había preparado”
 - que la sync llegue a tiempo
 - que el puente móvil→desktop funcione como experiencia
+
+### Fase 0c
+Objetivo:
+dar soporte mobile al Usuario A multi-dispositivo (galería organizada Android +
+sync bidireccional).
+
+Incluye:
+- galería Android por categorías (Tauri 2 + React mobile UI)
+- Classifier + Grouper en Android (Rust compilado vía NDK)
+- SQLCipher local Android
+- Google Drive relay bidireccional (raw_events en ambas direcciones)
+- Privacy Dashboard mínimo mobile
+
+No incluye:
+- workspace rico en móvil (Panel B, Episode Detector móvil)
+- Pattern Detector móvil
+- Trust Scorer móvil
+- iOS (track paralelo, requiere macOS)
+- mobile standalone con tier paid (D22 aplazada por OD-007)
+
+Qué valida (con Fase 0b):
+- el puente móvil → desktop con dos dispositivos sincronizados de verdad
+- que la galería móvil sirve como revisión rápida sin restar wow al desktop
+
+Qué NO valida:
+- hipótesis mobile-only standalone (D22 aplazada)
 
 ### Fase 1
 - organización de descargas y screenshots
@@ -349,7 +377,24 @@ Observer del MVP = Share Extension iOS. Desktop no observa.
 Fase 0 se divide en 0a y 0b.
 
 ### D11
-Plataformas iniciales = macOS + iOS.
+~~Plataformas iniciales = macOS + iOS.~~ **SUPERSEDIDA por D19 (Windows + Android first).** Conservada como referencia histórica.
+
+### D19
+Plataforma primaria del MVP = Windows + Android. iOS pasa a track paralelo
+secundario (requiere entorno macOS).
+
+### D20
+La app Android es cliente local: Classifier + Grouper + SQLCipher propios.
+Soporte del Usuario A multi-dispositivo. **NO** es producto independiente
+(D22 aplazada por OD-007).
+
+### D21
+Sync bidireccional vía Google Drive relay (raw_events en ambas direcciones).
+Cada dispositivo tiene su propio SQLCipher; no hay merge de bases de datos.
+
+### D22
+~~Mobile standalone con tier paid.~~ **APLAZADA por OD-007 (2026-04-29).**
+Conservada en decisions-log.md con condiciones de reactivación.
 
 ### D12
 Foco MVP = único caso móvil → desktop. Bookmarks no son caso núcleo.
@@ -391,6 +436,8 @@ Fase 0b incluye buffer de sync y escape a QR si iCloud falla.
 - ratio precise/broad > 60%
 - ACK en < 60s para > 95% de señales
 - plantillas del resumen < 100 ms
+- ACK del relay Drive < 60s en > 95% de eventos (P95)
+- latencia P50 móvil → desktop < 90s para eventos del wow moment
 
 ### Valor
 - > 40% usuarios con al menos 1 workspace activo a 14 días
