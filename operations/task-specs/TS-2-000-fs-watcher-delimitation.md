@@ -213,8 +213,8 @@ El archivo `fs_watcher.rs` debe incluir en su comentario de cabecera:
 - [x] el documento declara explícitamente la separación entre FS Watcher
       (detección de sesión de archivos locales) y Pattern Detector (patrones
       longitudinales) — R12 (sección 4)
-- [ ] **PENDIENTE**: el documento es aprobado por el Technical Architect antes
-      de que comience ninguna implementación de FS Watcher
+- [x] el documento es aprobado por el Technical Architect antes de que comience
+      ninguna implementación de FS Watcher (AR-2-002, 2026-04-24 — sin correcciones)
 
 ---
 
