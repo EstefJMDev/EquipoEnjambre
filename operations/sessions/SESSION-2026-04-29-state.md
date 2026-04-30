@@ -371,3 +371,27 @@ Los archivos `tmp_*` NO se borran hasta la rotación de secretos (R19). Contiene
 - `tmp_oauth_flow.js`: EXISTE en EquipoEnjambre/
 - `tmp_logcat_relay.txt`: EXISTE en EquipoEnjambre/ (sin secretos, diagnóstico)
 - NO borrar hasta rotación de secretos R19 (~2026-05-06). Necesarios para reinstalación Android si access_token caduca antes de Día 7.
+
+---
+
+## Update sesión siguiente (2026-04-30 día 2+)
+
+### Bug #6 — driveGetFileId query malformada (preexistente)
+
+**Detectado:** durante cleanup de Drive AppData (cientos de ACKs duplicados).
+**Causa raíz:** `DriveRelayWorker.kt` función `driveGetFileId` línea 659 tenía query `name+'valor'+and+trashed=false` — falta el operador `=`. Drive API rechaza la query, devuelve vacío. `driveUploadOrUpdate` interpretaba "no encontrado" y siempre creaba archivos nuevos via POST.
+**Impacto:** cada ciclo de WorkManager creaba un ACK duplicado en Drive AppData. Con el loop corriendo cada ~30s, 10 eventos × varias horas = cientos de archivos duplicados.
+**Siempre estuvo roto:** preexistente desde la implementación original, no introducido por ningún refactor.
+**Fixes aplicados (sesión 2026-04-30 día 2+):**
+- Fix A (Kotlin `driveGetFileId`): reescrita con `toHttpUrl().newBuilder().addQueryParameter(...)` — OkHttp codifica la query correctamente. Compila. BUILD SUCCESSFUL.
+- Fix B (Rust `drive_relay.rs`): antes de `drive_upload` del ACK, check `drive_list_prefix` con el nombre exacto. Si ya existe → skip. Compila.
+- Fix C (Kotlin `writeDesktopAck`): check `driveGetFileId` antes de subir ACK. Si ya existe → return. Compila.
+**Test manual requerido pre-release:** compartir 1 URL, esperar 2 ciclos de 30s, contar archivos en Drive AppData. Debe haber exactamente 1 android_pending + 1 acked (no duplicados).
+**Archivos modificados:** `DriveRelayWorker.kt`, `drive_relay.rs`.
+**Commit:** pendiente en esta sesión.
+
+### Otros cambios sesión 2026-04-30 día 2+
+- `ShareIntentActivity.kt` + `DriveRelayWorker.kt`: categorías sincronizadas a español (14 categorías) igual que `classifier.rs`. Fallback `"other"` → `"otro"`.
+- Archivos Kotlin faltantes añadidos a git tracking: `RelayCrypto.kt`, `RelayNaming.kt`, `build.gradle.kts`, 3 test files. Commit `b9be542` subido a GitHub.
+- Drive AppData cleanup: ~300+ archivos ACK duplicados borrados (residuo del Bug #6 preexistente).
+- APK rebuild + reinstall con categorías corregidas. Instalado en tablet OZ4H9HBYKNSWV86H.
