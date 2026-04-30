@@ -313,3 +313,61 @@ Documentados en `operations/validation/VALIDATION-7DAY-day1-findings.md`.
 ### Nota sobre tmp_*
 
 Los archivos `tmp_*` NO se borran hasta la rotación de secretos (R19). Contienen los tokens activos que se necesitan para renovar las prefs Android si la sesión se reinicia antes de los 7 días. Borrar después de rotar en ~2026-05-06.
+
+---
+
+## Update 2026-04-30 CIERRE — Sesión completa
+
+### Prio 1 (fixes)
+- Bug #2 crypto key mismatch: ARREGLADO
+- Bug #3 Android cifra con key local: ARREGLADO
+- Bug #1 naming flat Drive: ARREGLADO
+- Bug #5 ack_prefix roto (drive_relay.rs:334): ARREGLADO (`desktop_acked_prefix`)
+- Bug #4 APK desfasado: ARREGLADO (rebuild limpio, instalado en tablet)
+
+### Prio 2 (tests cross-lang)
+- 11 tests (6 Rust + 5 Kotlin activos), 2 fixtures compartidas
+- Gate implementado: cualquier cambio al relay protocol falla tests
+- cargo test: 62 passed, 0 failed; relay_naming_convention: 3 passed, 0 ignored post-fix
+
+### Classifier + Episode Detector (H-002/H-003 parciales)
+- 14 categorías en español (antes: 9 en inglés). Grep exhaustivo: 0 strings inglés.
+- tokenize_resource con tokens de URL + dominio + título ×2 peso
+- 4 tests nuevos en episode_detector.rs. TypeScript: 0 errores.
+
+### Validación E2E
+- EXITOSA. Sync funciona. Latencia ~30s. Desktop se refresca solo.
+- Hallazgos: H-001 (YouTube sin título), H-002 (categorías — parcial), H-003 (agrupación — parcial).
+- Prueba de 7 días arrancada: día 1 = 2026-04-30.
+
+### Risk Register
+- R14: MITIGADO (desktop + mobile APK rebuild)
+- R15: MITIGADO (~30s P50)
+- R16: MITIGADO (ensureValidAccessToken)
+- R17: ABIERTO (refresh_token 7 días modo prueba, ~2026-05-06)
+- R18: ABIERTO (scripts sin tests automatizados)
+- R19: ABIERTO (secretos en log, rotar 2026-05-07)
+- R20: MITIGADO (gate cross-lang)
+
+### Documentación
+- INC-001: completo
+- INC-002: completo (incluye Bug #5)
+- HO-024: completo
+- AN-oauth-edge-cases.md: completo (9 casos)
+- AN-classifier-enrichment-options.md: completo (opciones 3a-3d)
+- VALIDATION-7DAY-day1-findings.md: completo
+
+### Estado de componentes al cierre
+- tauri dev desktop: arriba durante la sesión (relanzar si es necesario)
+- APK tablet OZ4H9HBYKNSWV86H: instalado (rebuild 2026-04-30)
+- drive_config.json: OK
+- prefs Android: OK (reescritas post-rebuild con access_token renovado)
+- Tests: cargo test 62 passed; gradle BUILD SUCCESSFUL 8 tests
+
+### tmp_* al cierre
+- `tmp_oauth_tokens.json`: EXISTE en EquipoEnjambre/ (contiene secretos — NO commitear)
+- `tmp_drive_config_artifacts.json`: EXISTE en EquipoEnjambre/ (contiene secretos)
+- `tmp_android_prefs.xml`: EXISTE en EquipoEnjambre/ (contiene secretos)
+- `tmp_oauth_flow.js`: EXISTE en EquipoEnjambre/
+- `tmp_logcat_relay.txt`: EXISTE en EquipoEnjambre/ (sin secretos, diagnóstico)
+- NO borrar hasta rotación de secretos R19 (~2026-05-06). Necesarios para reinstalación Android si access_token caduca antes de Día 7.
