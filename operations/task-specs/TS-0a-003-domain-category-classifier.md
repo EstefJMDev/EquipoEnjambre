@@ -132,9 +132,9 @@ Su contrato comienza y termina en la invocación del Importer.
 | Decisión de "episodio accionable" | 0b | Episode Detector dual-mode |
 | Llamadas a red para enriquecer categoría | MVP: prohibidas | invariante 2 de arch-note |
 | Acceso a contenido completo de páginas | nunca | D1 permanente |
-| Clasificación por título (sin dominio) | fuera de contrato | rompe determinismo por dependencia de texto libre |
+| Clasificación por título (sin dominio) | **MATIZADO por CR-004 — Capa A.3 autoriza tokens del path y del título RECIBIDOS EN CLARO como input adicional cuando la tabla devuelve `otro`. El dominio sigue siendo el input primario; los tokens nunca son input único.** Implementación en Fase 3 (T-3-006). | rompe determinismo solo si los tokens introducen aprendizaje; el diccionario estático preserva determinismo |
 | Persistencia propia de categorías o dominios aprendidos | Fase 2 | Pattern Detector |
-| Fallback a LLM si dominio no está en tabla | nunca como requisito | D8 |
+| Fallback a LLM si dominio no está en tabla | **MATIZADO por CR-004 — el LLM como REQUISITO permanece prohibido por D8. CR-004 autoriza el LLM como ENRIQUECEDOR OPCIONAL del Classifier (Capa B) cuando: (1) Capa A devuelve `otro`, (2) Ollama está disponible localmente, (3) el usuario tiene LLM activo en Privacy Dashboard. Activación condicional a OD del Orchestrator con datos de beta.** Implementación en Fase 3 (T-3-005 con scope ampliado). | D8 — el baseline determinístico (tabla + Capa A) sigue siendo obligatorio |
 
 ### Distinción Crítica: Classifier 0a vs Episode Detector 0b
 
@@ -284,3 +284,197 @@ para la demo. No es un catálogo exhaustivo ni un sistema de taxonomía del
 producto. Su extensión futura no requiere revisión de este documento; sí
 requiere que los nuevos dominios sigan siendo asignables por regla estática
 sin introducir aprendizaje ni red.
+
+---
+
+## Capa A — Inferencia Determinística (Extensión Aprobada por CR-004)
+
+**Estado:** APROBADA por CR-004 + AR-CR-004 + PGR-CR-004 + HO-028
+(Orchestrator, 2026-05-04). Implementación en Fase 3 como tarea
+**T-3-006** (ver `operations/backlogs/backlog-phase-3.md`). Esta
+sección documenta el contrato; la TS ejecutable de T-3-006 será
+emitida por el Technical Architect tras este commit.
+
+### Motivación
+
+Tras la prueba E2E de 7 días (2026-04-30 → 2026-05-04), múltiples
+dominios cayeron en la categoría `otro` y rompieron la agrupación por
+episodio. La tabla estática no escala a la long tail de dominios. Capa
+A añade **tres pasos determinísticos** que se ejecutan **solo cuando
+la tabla exacta devuelve `otro`**, preservando D8 (sin LLM como
+requisito) y D1 (sin acceso a campos cifrados).
+
+### Contrato Público — preservado
+
+```rust
+pub fn classify(url: &str, title: Option<&str>) -> Classified
+```
+
+`title` es opcional para mantener compatibilidad hacia atrás:
+`import_resource` y `add_capture` ya disponen de él en claro upstream
+del cifrado. Si `title` es `None`, Capa A.3 opera solo con
+`path_tokens`.
+
+### Contrato Interno — ampliado
+
+```rust
+fn lookup_category(
+    domain: &str,
+    path_tokens: &[&str],
+    title_tokens: &[&str],
+) -> &'static str
+```
+
+### Orden de Resolución
+
+```
+domain → exact_lookup(domain)              // tabla actual
+       → exact_lookup(strip_one_subdomain) // tabla actual
+       → exact_lookup(strip_two_subdomains)// tabla actual
+       → tld_inference(domain)             // Capa A.1 — nuevo
+       → subdomain_inference(domain)       // Capa A.2 — nuevo
+       → keyword_inference(path_tokens, title_tokens) // Capa A.3 — nuevo
+       → "otro"                            // fallback
+```
+
+Cualquier paso que devuelva categoría distinta de `otro` corta la
+cadena.
+
+### Capa A.1 — TLD Inference
+
+Coincidencia por TLD del dominio:
+
+| Patrón TLD | Categoría |
+|---|---|
+| `.gob.es`, `.gov`, `.gov.uk`, `.gov.fr` | gobierno |
+| `.edu`, `.ac.uk`, `.edu.es`, `.ac.jp` | educación |
+
+Cota: ≤ 30 entradas. Implementación con `ends_with` ordenado de más
+específico a menos específico.
+
+### Capa A.2 — Subdominio Inference
+
+Coincidencia por prefijo de subdominio del dominio:
+
+| Prefijo | Categoría |
+|---|---|
+| `tienda.*`, `shop.*`, `store.*` | comercio |
+| `blog.*` | artículos |
+| `api.*`, `developer.*`, `dev.*` | desarrollo |
+| `docs.*`, `wiki.*` | educación |
+
+Cota: ≤ 10 entradas. Implementación con `starts_with`.
+
+### Capa A.3 — Keyword Inference
+
+Diccionario estático en código:
+
+```rust
+const KEYWORD_INFERENCE: &[(&str, &[&str])] = &[
+    ("cocina", &[
+        "receta", "ingredientes", "cocinar", "plato", "horno",
+        "guiso", "postre", "tapa", "menu",
+    ]),
+    ("deportes", &[
+        "partido", "gol", "liga", "futbol", "baloncesto",
+        "tenis", "formula", "motogp", "marcador",
+    ]),
+    ("entretenimiento", &[
+        "pelicula", "serie", "episodio", "temporada", "capitulo",
+        "reparto", "estreno", "sinopsis",
+    ]),
+    ("gobierno", &[
+        "ley", "decreto", "boe", "real-decreto", "resolucion",
+        "tramite", "sede", "expediente",
+    ]),
+    ("salud", &[
+        "sintoma", "tratamiento", "medico", "consulta", "clinica",
+        "diagnostico", "farmacia", "vacuna",
+    ]),
+    // Mínimo viable: 5 categorías × 8-10 keywords cada una.
+    // Cota dura: ≤ 200 entradas totales en el diccionario.
+];
+```
+
+**Reglas de operación:**
+
+- Capa A.3 cuenta cuántos `path_tokens` y `title_tokens` coinciden
+  con cada lista de keywords.
+- La categoría con **mayor count** gana, **siempre que el count
+  ≥ 2 tokens distintos** y haya un margen de al menos 1 sobre la
+  segunda categoría.
+- En empate o si ninguna categoría supera el umbral → `otro`.
+- Determinístico: el orden de las categorías en el diccionario
+  desempata si todos los counts son iguales (no debería ocurrir bajo
+  el umbral anterior).
+
+### Diccionario — Reglas de Auditoría (PG-A1..PG-A5)
+
+Privacy Guardian (PGR-CR-004 §3) impone los siguientes controles
+sobre el contenido del diccionario:
+
+| Control | Regla |
+|---|---|
+| PG-A1 | El diccionario es estático en código, no aprendido. Cualquier proceso que añada keywords automáticamente queda prohibido. |
+| PG-A2 | No se admiten keywords que sean nombres propios de personas, marcas concretas asociadas a identidad personal, ni términos médicos específicos (cardiología, psiquiatría, etc.). El nivel de granularidad permitido es la categoría temática general. |
+| PG-A3 | No se admiten keywords en idiomas no documentados. Idiomas soportados en mínimo viable: español + inglés. Ampliaciones posteriores requieren PR + revisión. |
+| PG-A4 | Cualquier ampliación del diccionario requiere PR + revisión por Privacy Guardian si introduce categoría nueva o si aporta keywords con potencial de identificación (lista de exclusión PG-A2). |
+| PG-A5 | El diccionario se publica como parte del código abierto del proyecto. La auditoría de la comunidad es un control adicional. |
+
+### Función `extract_path_tokens` — declarada
+
+El path de la URL se tokeniza con los siguientes filtros:
+
+- separadores: `/`, `?`, `&`, `=`, `#`
+- longitud mínima por token: 3 caracteres
+- filtros adicionales: alfanumérico solo (no caracteres especiales),
+  exclusión de stopwords (`www`, `com`, `html`, etc.) y de tokens
+  numéricos puros, exclusión de prefijos `utm_`, `fbclid`, `gclid`
+
+(Misma función que ya usa `episode_detector.rs::extract_url_tokens`,
+reutilizable.)
+
+### Función `tokenize_title` — declarada
+
+Idéntica a `episode_detector.rs::tokenize` (stopwords ES + EN, longitud
+mínima 3, filtrado de números puros). Reutilizable directamente.
+
+### Criterios de Aceptación (AC-A1..AC-A8)
+
+Los AC ejecutables emitidos por el Technical Architect en
+AR-CR-004 §6:
+
+| # | Criterio | Verificable |
+|---|---|---|
+| AC-A1 | Contrato público `classify(url, title) -> Classified` preservado. | Inspección + `cargo check` desktop sin errores fuera de `classifier.rs`. |
+| AC-A2 | `lookup_category` ejecuta los 6 pasos en orden. Cualquier paso != `otro` corta la cadena. | Test unitario con 12 casos. |
+| AC-A3 | Diccionario estático ≤ 200 entradas. | Inspección + test estructural. |
+| AC-A4 | `cargo bench` muestra que `classify` con Capa A no excede en > 30 µs la versión actual para 1000 URLs típicas. | Benchmark. |
+| AC-A5 | Determinismo: ningún `std::fs`, `std::net`, `std::sync::Mutex` en `classifier.rs`. | Test estructural. |
+| AC-A6 | Sync paritario en Kotlin con el mismo diccionario y los mismos pasos. | Diff + test de paridad. |
+| AC-A7 | Privacy Guardian re-aprueba la TS ejecutable de T-3-006 verificando inputs de Capa A.3. | PGR-T-3-006 con APROBADO. |
+| AC-A8 | `cargo test` desktop al 100% + `npx tsc --noEmit` limpio. | CI verde. |
+
+### Sync Paritario Rust ↔ Kotlin
+
+Constraint vivo desde commits `1986c8d` y `5857eb2`: cualquier
+ampliación del Classifier en Rust debe replicarse en
+`ShareIntentActivity.kt::classifyDomain`. Capa A.1, Capa A.2 y Capa
+A.3 con el **mismo diccionario** se implementan en Kotlin como parte
+de T-3-006.
+
+### Out of Scope — Capa B
+
+Capa B (LLM como enriquecedor opcional del Classifier) **no se
+documenta en esta TS**. Vive en `backlog-phase-3.md` como ampliación
+de T-3-005, condicional a decisión del Orchestrator basada en datos
+de beta. Esta sección solo documenta Capa A.
+
+### Referencias
+
+- `operations/change-requests/CR-004-classifier-enrichment.md`
+- `operations/architecture-reviews/AR-CR-004-classifier-enrichment.md`
+- `operations/architecture-reviews/PGR-CR-004-classifier-enrichment.md`
+- `operations/handoffs/HO-028-cr-004-classifier-enrichment-approval.md`
+- `operations/architecture-notes/AN-classifier-enrichment-options.md`
+  (nota informativa de origen, 2026-04-30)
