@@ -67,7 +67,7 @@ Si un problema puede resolverse mediante:
 
 entonces no debe resolverse creando estructura prematura del producto.
 
-## 3. Que Debe Hacer Codex Aqui
+## 3. Que Debe Hacer Claude Code Aqui
 
 Cuando trabajes aqui, debes:
 
@@ -99,9 +99,9 @@ Cuando trabajes aqui, debes:
 Si dos documentos chocan sobre activacion u ownership, la matriz correspondiente
 debe volver a ser la autoridad unica.
 
-## 4. Que No Debe Hacer Codex
+## 4. Que No Debe Hacer Claude Code
 
-Codex no debe:
+Claude Code no debe:
 
 * convertir este repositorio en el inicio de la implementacion real del producto
 * crear apps, paquetes, servicios o modulos del producto
