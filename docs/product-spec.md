@@ -327,11 +327,15 @@ Qué valida (con Fase 0b):
 Qué NO valida:
 - hipótesis mobile-only standalone (D22 aplazada)
 
-### Fase 1
-- organización de descargas y screenshots
-- FS Watcher
-- adaptación del Episode Detector
-- Panel B con plantillas
+### Fase 1 [ACTUALIZADO por CR-003]
+Alcance efectivo entregado:
+- Panel B con plantillas (resumen del workspace por episodio/cluster)
+
+Movido a Fase 2 (ver CR-003):
+- FS Watcher (ahora T-2-000 en Fase 2, con delimitación formal exigida por D9)
+- organización de descargas y screenshots (bloqueada hasta que el FS Watcher
+  esté operativo y haya cadena Pattern Detector → Trust Scorer → State Machine)
+- adaptación del Episode Detector más allá de lo entregado en 0b
 
 ### Fase 2
 - Pattern Detector
@@ -487,3 +491,4 @@ Se recomienda:
 | 2026-04-24 | 5, 6 (observación), 14 Fase 0b, D11, D19 añadida | Activación de D19 (Windows + Android first). iOS pasa a track paralelo secundario. Share Extension iOS reemplazada por Share Intent Android como observer primario del MVP. |
 | 2026-04-29 | D20, D21, D22 | OD-007 — D22 (mobile standalone tier paid) aplazada. D20/D21 ratifican que la app Android es soporte multi-dispositivo del Usuario A, con sync bidireccional vía Google Drive relay. |
 | 2026-05-04 | 5, 6 (sync), 13, 14 Fase 0b | Alineación de Sync Layer con D19/D21: Google Drive pasa a relay primario, iCloud queda como secundario para track iOS. Marcas `[ACTUALIZADO por D19]` añadidas para trazabilidad. |
+| 2026-05-04 | 14 Fase 1 | CR-003 — registro retroactivo del movimiento del FS Watcher de Fase 1 a Fase 2 (T-2-000). Fase 1 queda reducida a Panel B con plantillas. |
