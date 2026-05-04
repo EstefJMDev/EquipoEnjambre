@@ -43,8 +43,13 @@ in_scope:
 - T-3-003: Calibración de umbrales State Machine con datos reales de beta
 - T-3-004: Observer semi-pasivo Android — Tile de sesión (tier paid, D9 extensión,
   CR-002) [BLOQUEADO hasta TS formal aprobada por Technical Architect y Privacy Guardian]
-- T-3-005: LLM local opcional (Ollama) — mejora sobre baseline determinístico
+- T-3-005: LLM local opcional (Ollama) — mejora sobre baseline determinístico,
+  con scope ampliado al Classifier por CR-004 (Capa B)
   [CONDICIONAL — solo si datos de beta demuestran insuficiencia del baseline, D8]
+- T-3-006: Classifier Capa A — inferencia determinística (TLD + subdominio +
+  keyword) cuando la tabla devuelve `otro`. Aprobado por CR-004 + AR-CR-004 +
+  PGR-CR-004. Implementación paralelizable a la infraestructura de beta —
+  no depende de P-0/P-1.
 
 out_of_scope:
 - distribución en Google Play Store o Microsoft Store (Fase 3 es beta cerrada directa)
@@ -117,10 +122,17 @@ Fase 2 cerrada (pattern_detector.rs + trust_scorer.rs + state_machine.rs +
     │             y Privacy Guardian — puede arrancar en paralelo a T-3-001/
     │             T-3-002 una vez la TS esté aprobada; no depende de T-3-003]
     │
-    └──► T-3-005  LLM local opcional (Ollama)
+    └──► T-3-005  LLM local opcional (Ollama) + scope extension Classifier
                  [CONDICIONAL — requiere decisión explícita del Orchestrator
                   basada en datos de beta de T-3-002/T-3-003; no puede
-                  activarse antes de que existan datos reales]
+                  activarse antes de que existan datos reales; Capa B del
+                  Classifier (CR-004) requiere además T-3-006 implementada]
+
+    └──► T-3-006  Classifier Capa A — inferencia determinística
+                 [APROBADO por CR-004 + AR-CR-004 + PGR-CR-004 + HO-028.
+                  Paralelizable a T-3-001/T-3-002 — no depende de P-0/P-1.
+                  Mejora la calidad de la clasificación que alimentará la
+                  telemetría sin cambiar el schema declarado en T-3-002.]
 ```
 
 P-0 y P-1 no bloquean la producción del backlog ni las tareas documentales y de
@@ -705,14 +717,17 @@ Guardian antes de desplegarse con usuarios beta.
 
 ---
 
-### T-3-005 — LLM Local Opcional (Ollama)
+### T-3-005 — LLM Local Opcional (Ollama) + Scope Extension Classifier (CR-004)
 
 task_id: T-3-005
-title: LLM local opcional (Ollama) — mejora sobre baseline determinístico
+title: LLM local opcional (Ollama) — mejora sobre baseline determinístico, con
+       scope ampliado al Classifier por CR-004 (Capa B)
 phase: 3
 owner_agent: Desktop Tauri Shell Specialist (si se activa)
 depends_on: datos de beta de T-3-002 y T-3-003 que justifiquen insuficiencia del
-            baseline + decisión explícita del Orchestrator (PREREQUISITO DE ACTIVACIÓN)
+            baseline + decisión explícita del Orchestrator + T-3-006 implementada
+            (Capa A del Classifier — prerequisito de Capa B según AR-CR-004 §5)
+            (PREREQUISITO DE ACTIVACIÓN)
 
 > **ATENCIÓN: T-3-005 es CONDICIONAL. Solo puede activarse si:
 > (1) los datos de beta de T-3-002 y T-3-003 demuestran que el baseline
@@ -797,6 +812,230 @@ esté instalado o no pueda ejecutarse.
 Al Orchestrator para decisión de activación basada en datos de beta. Al Privacy
 Guardian para verificar que el input del LLM no contiene campos prohibidos por D1.
 Al Technical Architect para revisión del contrato de integración con Ollama.
+
+#### Scope Extension via CR-004 — Capa B del Classifier
+
+CR-004 (aprobado 2026-05-04 por Orchestrator vía HO-028) amplía el scope de
+T-3-005 para autorizar al LLM como **enriquecedor opcional del Classifier**,
+no solo de los labels del Pattern Detector. La activación sigue siendo
+condicional al Orchestrator + datos de beta + T-3-006 implementada.
+
+**Cuándo se invoca el LLM en el Classifier (Capa B):**
+
+```
+classify(url, title)
+   → tabla exact_lookup (3 niveles) → si != "otro": fin
+   → Capa A.1 TLD inference          → si != "otro": fin
+   → Capa A.2 subdominio inference   → si != "otro": fin
+   → Capa A.3 keyword inference      → si != "otro": fin
+   → si Ollama disponible Y user_enabled_llm_in_dashboard:
+        llm_classify(domain, path_tokens) → sugerencia
+   → si la sugerencia encaja en set fijo: usar; si no: "otro"
+   → "otro"
+```
+
+**Input exclusivo del LLM (PG-B1, ratificado por PGR-CR-004):**
+
+```rust
+fn llm_classify(domain: &str, path_tokens: &[&str]) -> Option<&'static str>
+```
+
+- `domain`: en claro (D1 autoriza)
+- `path_tokens`: tokens del path de la URL filtrados por `extract_path_tokens`
+
+**Prohibido en input del LLM:** URL completa, `title`, `title_tokens`,
+cualquier otro campo. Test estructural PG-B1 garantiza que la signatura
+no se amplíe sin CR.
+
+**Acceptance Criteria de Capa B (AC-B1..AC-B7 de AR-CR-004 §6):**
+
+- [ ] AC-B1: Capa B solo se invoca si Capa A devolvió `otro`, Ollama está
+      disponible Y el usuario tiene LLM activo en Privacy Dashboard.
+- [ ] AC-B2: el input del LLM es exclusivamente `domain` + `path_tokens`. Test
+      estructural sobre la signatura de `llm_classify`.
+- [ ] AC-B3: timeout 200 ms a la llamada del LLM; si excede, fallback a `otro`
+      sin error.
+- [ ] AC-B4: el Privacy Dashboard incluye sección "Modelo local — clasificador"
+      visible al usuario cuando Capa B está activa, con control de
+      desactivación (D14 + PGR-CR-004 §5 condición 4).
+- [ ] AC-B5: `cargo test` pasa con Ollama disponible Y sin él. Sin él, el
+      Classifier devuelve `otro` para los casos que Capa B habría enriquecido —
+      sin errores, sin degradación de funcionalidades core (D8 no negociable).
+- [ ] AC-B6: el modelo usado está declarado en configuración (versión, tamaño,
+      origen). El usuario puede verificar qué modelo procesa sus datos en
+      Privacy Dashboard.
+- [ ] AC-B7: Privacy Guardian re-audita el flujo de Capa B con la TS ejecutable
+      antes de implementar.
+
+**Controles de privacidad (PG-B1..PG-B5 de PGR-CR-004 §4):**
+
+- PG-B1: test estructural sobre signatura de `llm_classify` — solo dos
+  argumentos del tipo declarado.
+- PG-B2: test estructural sobre logs — ningún `log::*` o `eprintln!` en la
+  ruta del LLM contiene `url`, `title`, `path_tokens`, `domain` como
+  contenido de mensaje.
+- PG-B3: `path_tokens` filtrado por longitud (≥ 3), alfabeto (alfanumérico
+  solo) y stopwords antes de pasar al LLM. Mitigación de prompt injection.
+- PG-B4: la salida del LLM se valida contra el set fijo de categorías
+  existentes. Sugerencias fuera de set → `otro`.
+- PG-B5: timeout 200 ms (igual que AC-B3); fallback a `otro` sin reintentar.
+
+**Valor por defecto OFF (PGR-R7):** Capa B se instala con LLM desactivado por
+defecto. La activación requiere acción explícita del usuario en Privacy
+Dashboard. Una actualización futura no puede activar Capa B sin
+consentimiento.
+
+**Restricciones que NO cambian con la ampliación:**
+
+- D8 sigue no negociable: el sistema arranca y funciona sin Ollama en
+  cualquier hardware.
+- T-3-005 sigue siendo CONDICIONAL — no se activa sin OD del Orchestrator.
+- El LLM no toma decisiones de acción (D4 — autoridad sigue en
+  `state_machine.rs`).
+- El LLM no accede a `url` ni `title` (D1).
+
+**Coordinación con T-3-006:** T-3-006 (Capa A) es prerequisito obligatorio.
+Sin Capa A, Capa B intentaría clasificar demasiados dominios y el LLM se
+convertiría en dependencia de hecho. La condición de activación de Capa B
+es: "T-3-006 implementada Y los datos de beta muestran que `otro` sigue
+siendo no despreciable (cota propuesta: > 10 % de capturas) tras Capa A".
+
+**Referencias:**
+
+- `operations/change-requests/CR-004-classifier-enrichment.md`
+- `operations/architecture-reviews/AR-CR-004-classifier-enrichment.md` §4 y §6
+- `operations/architecture-reviews/PGR-CR-004-classifier-enrichment.md` §4 y §5
+- `operations/handoffs/HO-028-cr-004-classifier-enrichment-approval.md`
+
+---
+
+### T-3-006 — Classifier Capa A (Inferencia Determinística)
+
+task_id: T-3-006
+title: Classifier Capa A — inferencia determinística por TLD + subdominio +
+       keyword cuando la tabla exacta devuelve `otro`
+phase: 3
+owner_agent: Desktop Tauri Shell Specialist (Rust) + Android Share Intent
+             Specialist (Kotlin sync) + Technical Architect (TS ejecutable)
+             + Privacy Guardian (re-auditoría TS)
+depends_on: TS ejecutable de T-3-006 emitida por Technical Architect y
+            re-auditada por Privacy Guardian (PREREQUISITO BLOQUEANTE DE
+            IMPLEMENTACIÓN). NO depende de P-0 ni P-1: la tarea es
+            paralelizable a la infraestructura de beta.
+aprobado_por: CR-004 + AR-CR-004 + PGR-CR-004 + HO-028 (Orchestrator,
+              2026-05-04)
+
+> **ATENCIÓN: T-3-006 está BLOQUEADA hasta que el Technical Architect emita
+> la TS ejecutable con AC-A1..AC-A8 desglosados en pasos de implementación
+> y el Privacy Guardian re-audite esa TS. La tarea es paralelizable a
+> T-3-001/T-3-002 — su entregable mejora la calidad de la clasificación
+> que alimentará la telemetría sin cambiar el schema declarado en T-3-002.**
+
+#### Objective
+
+Implementar la Capa A de enriquecimiento del Classifier descrita en
+`operations/task-specs/TS-0a-003-domain-category-classifier.md` §"Capa A
+— Inferencia Determinística (Extensión Aprobada por CR-004)". Tres pasos
+nuevos que se ejecutan **solo cuando la tabla exacta devuelve `otro`**:
+
+1. **Capa A.1 — TLD inference** (`.gob.es`, `.gov`, `.edu`, etc.)
+2. **Capa A.2 — subdominio inference** (`tienda.*`, `shop.*`, `blog.*`,
+   `api.*`, `docs.*`, etc.)
+3. **Capa A.3 — keyword inference** sobre tokens del path y del título
+   con diccionario estático (5 categorías × 8-10 keywords mínimo viable,
+   cota dura ≤ 200 entradas).
+
+**Determinístico** (D8): mismo input → mismo output. **Sin red, sin LLM,
+sin persistencia propia.** Compatible con D1 sin controles nuevos —
+opera sobre datos en claro upstream del cifrado de SQLCipher.
+
+#### In Scope
+
+- Implementación en `src-tauri/src/classifier.rs` de los 3 pasos nuevos
+  con la función `lookup_category(domain, path_tokens, title_tokens)`.
+- Ampliación de `classify(url, title) -> Classified` con `title`
+  opcional, manteniendo compatibilidad hacia atrás.
+- Diccionario estático declarado como `&[(&str, &[&str])]` con mínimo
+  viable de 5 categorías (cocina, deportes, entretenimiento, gobierno,
+  salud) × 8-10 keywords cada una. Ampliable hasta cota dura de 200
+  entradas con PR + revisión.
+- Reutilización de `extract_url_tokens` y `tokenize` de
+  `episode_detector.rs` (importadas como funciones públicas o
+  duplicadas con tests de paridad — decisión del Technical Architect
+  en la TS ejecutable).
+- Sync paritario en
+  `src-tauri/gen/android/app/src/main/java/com/flowweaver/app/
+  ShareIntentActivity.kt` con el mismo diccionario y los mismos 3
+  pasos.
+- Tests unitarios para los 3 pasos con vectores representativos
+  (≥ 12 casos cubriendo cada uno de los 6 caminos de retorno).
+- Benchmark `cargo bench` que verifica cota de latencia ≤ 30 µs sobre
+  versión actual para 1000 URLs típicas.
+- Actualización de los consumidores de `classify` (`import_resource`,
+  `add_capture`) para pasar el `title` cuando lo tienen — sin cambios
+  en su contrato externo.
+
+#### Out Of Scope
+
+- LLM (Capa B) — pertenece a T-3-005 con scope ampliado, condicional.
+- Aprendizaje automático de keywords desde el uso del usuario — viola
+  D8 y PG-A1.
+- Persistencia del diccionario en SQLCipher o en archivos del usuario
+  — el diccionario es estático en código.
+- Llamadas a red para enriquecer la categoría — viola la invariante 2
+  del arch-note de Fase 0a y D8.
+- Modificación de `episode_detector.rs`, `pattern_detector.rs`,
+  `trust_scorer.rs`, `state_machine.rs` o `PrivacyDashboard.tsx` —
+  D17 (Pattern Detector cerrado en Fase 2) y R12 (módulos separados).
+
+#### Acceptance Criteria
+
+| # | Criterio | Verificable |
+|---|---|---|
+| AC-A1 | Contrato público `classify(url, title) -> Classified` preservado. Los consumidores no requieren modificación más allá de pasar `title` cuando lo tienen. | Inspección + `cargo check` desktop sin errores fuera de `classifier.rs` ni de los call sites de `classify`. |
+| AC-A2 | `lookup_category` ejecuta los 6 pasos en orden: exact (3 niveles) → tld_inference → subdomain_inference → keyword_inference → "otro". Cualquier paso != `otro` corta la cadena. | Test unitario con 12 casos cubriendo cada uno de los 6 caminos de retorno. |
+| AC-A3 | Diccionario estático en código (no externo, no aprendido), declarado como `&[(&str, &[&str])]`. Cota dura: ≤ 200 entradas totales. | Inspección + test estructural de cota. |
+| AC-A4 | `cargo bench` muestra que `classify` con Capa A activa no excede en > 30 µs la versión actual para 1000 URLs típicas. | Benchmark con criterios fijos. |
+| AC-A5 | Determinismo: ningún `std::fs`, `std::net`, `std::sync::Mutex` en `classifier.rs`. Sin estado interno mutable. | Test estructural. |
+| AC-A6 | Sync paritario en Kotlin: `ShareIntentActivity.kt::classifyDomain` implementa los mismos 3 pasos con el mismo diccionario. Tabla de paridad documentada. | Diff de keywords + test de paridad opcional en CI. |
+| AC-A7 | Privacy Guardian re-audita la TS ejecutable de T-3-006 verificando inputs de Capa A.3 (tokens en claro autorizados, ningún acceso a campos cifrados). | PGR-T-3-006 con APROBADO. |
+| AC-A8 | `cargo test` desktop al 100% sin regresiones + `npx tsc --noEmit` limpio. | CI verde. |
+
+#### Risks
+
+| ID | Riesgo | Prob. | Impacto | Mitigación |
+|---|---|---|---|---|
+| R-A1 | El implementador infla el diccionario con keywords poco discriminativos. | Media | Bajo | TS-0a-003 declara mínimo viable y proceso de PR + test para añadir entradas. |
+| R-A2 | Capa A.3 clasifica incorrectamente recursos cuyo path contiene keywords ambiguas. | Media | Bajo | Política: si keyword_inference produce empate o margen ≤ 1, el Classifier retorna `otro`. AC-A2 lo valida. |
+| R-A3 | Paridad Rust ↔ Kotlin se rompe en futuras ampliaciones. | Media | Medio | AC-A6 + script de diff opcional en CI. |
+| R-A4 | Capa A introduce regresión de latencia. | Baja | Medio | AC-A4 (benchmark). |
+| R-A5 | El diccionario incluye keywords con potencial de identificación personal. | Baja | Alto | Control PG-A2 (PGR-CR-004 §3) — exclusión de nombres propios, marcas asociadas a identidad y términos médicos específicos. Auditoría del Privacy Guardian. |
+
+#### Required Handoff
+
+1. **Technical Architect** — emitir TS ejecutable de T-3-006 con
+   AC-A1..AC-A8 desglosados en pasos de implementación. La TS debe
+   declarar el diccionario mínimo viable explícito, las funciones
+   `extract_path_tokens` y `tokenize_title` (reutilizadas o duplicadas
+   con tests de paridad) y los call sites de `classify` que se
+   actualizan.
+2. **Privacy Guardian** — re-auditar la TS ejecutable verificando que
+   los controles PG-A1..PG-A5 estén materializados como AC ejecutables.
+3. **Implementadores** — Desktop Tauri Shell Specialist (Rust) +
+   Android Share Intent Specialist (Kotlin) implementan en paralelo
+   manteniendo la paridad como constraint vivo.
+4. **QA Auditor** — verificar AC-A1..AC-A8 sobre el código antes de
+   declarar la tarea completa.
+
+#### Referencias
+
+- `operations/change-requests/CR-004-classifier-enrichment.md`
+- `operations/architecture-reviews/AR-CR-004-classifier-enrichment.md`
+- `operations/architecture-reviews/PGR-CR-004-classifier-enrichment.md`
+- `operations/handoffs/HO-028-cr-004-classifier-enrichment-approval.md`
+- `operations/task-specs/TS-0a-003-domain-category-classifier.md` §"Capa A"
+- `operations/architecture-notes/AN-classifier-enrichment-options.md`
+  (nota informativa de origen)
 
 ---
 
