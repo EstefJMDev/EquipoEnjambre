@@ -62,7 +62,7 @@ No deben tratarse como caso núcleo:
 - contexto para reuniones
 - marketplace, SDK o equipo
 
-## 5. Restricciones no negociables del MVP
+## 5. Restricciones no negociables del MVP [ACTUALIZADO por D19]
 
 - MVP = puente móvil → desktop
 - desktop no observa activamente en MVP
@@ -71,12 +71,12 @@ No deben tratarse como caso núcleo:
 - observer primario del MVP = Share Intent Android (D19)
 - observer secundario en track paralelo = Share Extension iOS (requiere macOS)
 - no hay backend propia en MVP
-- sync MVP = iCloud Drive / Google Drive relay cifrado + fallback QR
+- sync MVP primario = Google Drive relay cifrado (D21). iCloud Drive queda como secundario solo para track iOS. Fallback QR se mantiene.
 - Pattern Detector, Trust Scorer, State Machine y Explainability Log entran en Fase 2
 - LLM local es mejora opcional, no requisito funcional
 - bookmarks retroactivos son onboarding y cold start, no caso de uso núcleo
 
-## 6. Stack del MVP
+## 6. Stack del MVP [ACTUALIZADO por D19]
 
 ### Observación móvil
 - **Primario:** Kotlin Android — Share Intent (D19)
@@ -92,8 +92,9 @@ No deben tratarse como caso núcleo:
 - heurística de similitud
 
 ### Sincronización
-- iCloud Drive o Google Drive como relay cifrado
-- fallback QR
+- **Primario:** Google Drive como relay cifrado bidireccional (D21)
+- **Secundario:** iCloud Drive (solo relevante para track iOS)
+- **Fallback:** sync manual vía QR
 
 ### Almacenamiento local
 - SQLCipher sobre SQLite
@@ -220,10 +221,11 @@ Debe añadir:
 - borrado granular
 - exportación JSON
 
-## 13. Sync Layer
+## 13. Sync Layer [ACTUALIZADO por D19]
 
 ### Decisión cerrada
-MVP usa iCloud Drive o Google Drive como relay cifrado.
+MVP usa Google Drive como relay cifrado primario (D21, bidireccional).
+iCloud Drive queda como secundario, relevante solo para el track iOS paralelo.
 No hay P2P en v0.1.
 
 ### Requisitos del protocolo
@@ -272,13 +274,13 @@ Qué NO valida:
 - hipótesis núcleo del puente móvil→desktop
 - wow moment real
 
-### Fase 0b
+### Fase 0b [ACTUALIZADO por D19]
 Objetivo:
 validar la hipótesis núcleo del puente móvil→desktop.
 
 Incluye:
-- Share Intent Android (primario, D19)
-- Share Extension iOS (track paralelo, pendiente de macOS)
+- Share Intent Android (primario, D19) — simulado en escritorio vía `add_capture` durante 0b
+- Share Extension iOS (track paralelo, pendiente de entorno macOS)
 - Session Builder
 - Episode Detector dual-mode
 - sync con ACK e idempotencia
@@ -477,3 +479,11 @@ Se recomienda:
 - citarlo en prompts de arranque del repo producto
 - usarlo para validar que la implementación respeta el scope de la fase activa
 - usarlo como base de auditoría para evitar contaminación entre fases
+
+## 21. Registro de actualizaciones
+
+| Fecha | Sección(es) | Motivo |
+|---|---|---|
+| 2026-04-24 | 5, 6 (observación), 14 Fase 0b, D11, D19 añadida | Activación de D19 (Windows + Android first). iOS pasa a track paralelo secundario. Share Extension iOS reemplazada por Share Intent Android como observer primario del MVP. |
+| 2026-04-29 | D20, D21, D22 | OD-007 — D22 (mobile standalone tier paid) aplazada. D20/D21 ratifican que la app Android es soporte multi-dispositivo del Usuario A, con sync bidireccional vía Google Drive relay. |
+| 2026-05-04 | 5, 6 (sync), 13, 14 Fase 0b | Alineación de Sync Layer con D19/D21: Google Drive pasa a relay primario, iCloud queda como secundario para track iOS. Marcas `[ACTUALIZADO por D19]` añadidas para trazabilidad. |
