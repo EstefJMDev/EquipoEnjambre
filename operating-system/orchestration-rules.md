@@ -84,3 +84,18 @@ cuando aparezcan solape, duplicacion o contaminacion de fase.
 * restricciones respetadas
 * siguiente owner
 * documentos que deben cambiar
+
+## Regla De Commits Atomicos
+
+Cada tarea del backlog debe producir al menos un commit independiente en el
+repo del producto. Los commits deben ser atomicos: un commit por cambio
+logico coherente (un modulo, un componente, una correccion). Los commits que
+mezclan cambios no relacionados deben evitarse.
+
+El Handoff Manager debe verificar que el numero de commits por tarea sea
+razonable antes de cerrar un handoff. Si una tarea cierra con un unico commit
+monolitico que mezcla varias unidades logicas, el handoff queda bloqueado
+hasta que el especialista justifique la atomicidad o reorganice los commits.
+
+Aplicabilidad: esta regla aplica de Fase 2 en adelante. El historial previo no
+se reescribe.
