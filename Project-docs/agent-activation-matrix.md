@@ -32,6 +32,7 @@ manda.
 | iOS Share Extension Specialist | LOCKED | ACTIVE | LISTENING | LISTENING | LISTENING | LISTENING | No tiene ownership legitimo antes de 0b. |
 | Session & Episode Engine Specialist | LOCKED | ACTIVE | ACTIVE | LISTENING | LISTENING | LISTENING | Lidera Session Builder y Episode Detector solo en 0b-1. |
 | Sync & Pairing Specialist | LOCKED | ACTIVE | LISTENING | LISTENING | LISTENING | ACTIVE | Lidera sync MVP en 0b y recupera ownership en V1/V2+. |
+| Cross-Repo Consistency Specialist | LOCKED | LISTENING | LISTENING | ACTIVE | ACTIVE | ACTIVE | Activado en Fase 2 porque la fase introduce cambios que afectan ambos repos (FlowWeaver + EquipoEnjambre): nuevos modulos Rust, dependencias, contratos AR y deltas de setup que requieren verificacion cruzada. |
 
 ## Errores Comunes De Activacion Temprana
 
