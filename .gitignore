@@ -35,3 +35,6 @@ Thumbs.db
 # Claude Code — local-only files (settings.json is tracked; these are not)
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
+
+# Temporary debug artifacts (may contain secrets)
+tmp_*

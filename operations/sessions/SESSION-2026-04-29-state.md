@@ -393,5 +393,33 @@ Los archivos `tmp_*` NO se borran hasta la rotación de secretos (R19). Contiene
 ### Otros cambios sesión 2026-04-30 día 2+
 - `ShareIntentActivity.kt` + `DriveRelayWorker.kt`: categorías sincronizadas a español (14 categorías) igual que `classifier.rs`. Fallback `"other"` → `"otro"`.
 - Archivos Kotlin faltantes añadidos a git tracking: `RelayCrypto.kt`, `RelayNaming.kt`, `build.gradle.kts`, 3 test files. Commit `b9be542` subido a GitHub.
-- Drive AppData cleanup: ~300+ archivos ACK duplicados borrados (residuo del Bug #6 preexistente).
+- Drive AppData cleanup: ~789 archivos ACK duplicados borrados (residuo del Bug #6 preexistente).
 - APK rebuild + reinstall con categorías corregidas. Instalado en tablet OZ4H9HBYKNSWV86H.
+
+---
+
+## CIERRE SESIÓN 2026-04-30 DÍA 2+ — Bug #6 CONFIRMADO RESUELTO
+
+**Test manual Bug #6 PASADO:**
+- Usuario compartió 3 URLs de Android → desktop.
+- Drive AppData: 0 archivos duplicados. Ciclo completo android-pending → android-acked completado y limpiado sin residuo.
+- Solo 2 archivos `desktop-pending` en Drive al cierre (eventos originados en desktop, dirección desktop→android, normal).
+- Contenido visible en app desktop confirmado por usuario.
+- Fix A + Fix B + Fix C operativos.
+
+**Estado del commit:**
+- Cambios de Bug #6 (DriveRelayWorker.kt + drive_relay.rs) + categorías: **PENDIENTE COMMIT**. Código correcto en disco, no commiteado.
+
+**Estado del puente al cierre:**
+- Android → Desktop: OPERATIVO ✓
+- Desktop → Android: OPERATIVO (2 desktop-pending en Drive esperando lectura de WorkManager Android)
+- Bug #6: CERRADO
+- Día 2 de la prueba de 7 días completado.
+
+**Pendientes próxima sesión:**
+1. Commit + push de Bug #6 (DriveRelayWorker.kt + drive_relay.rs) + categorías español.
+2. H-003 — compartir 3-5 URLs mismo tema, verificar Episode Detector agrupa en modo Precise.
+3. R17 (~2026-05-06): rotar refresh_token antes de expirar (7 días modo prueba Google Cloud).
+4. R19 (~2026-05-07): rotar client_secret + revocar refresh_token tras prueba.
+
+**tauri dev desktop:** probablemente siguiendo activo. Relanzar si es necesario.
