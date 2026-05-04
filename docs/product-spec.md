@@ -376,8 +376,34 @@ LAN como canal adicional en V1. P2P solo en V2+ con nuevo emparejamiento.
 ### D8
 Resumen = plantillas primero, LLM local como upgrade opcional.
 
-### D9
-Observer del MVP = Share Extension iOS. Desktop no observa.
+### D9 [ACTUALIZADO — supersede definición original; D9 evolucionó en 2026-04-27 y 2026-04-28]
+
+**Definición canónica (ver `Project-docs/decisions-log.md`):**
+
+FS Watcher es el único módulo de observación activa en Fase 2 y requiere
+delimitación formal antes de implementar (qué observa, por cuánto tiempo, con
+qué controles de privacidad).
+
+**Extensiones formales aprobadas:**
+
+- **2026-04-27 — Extensión: Observer semi-pasivo Android (tier paid).**
+  Aprobada por AR-CR-002-mobile-observer (Technical Architect) y
+  PGR-CR-002-mobile-observer (Privacy Guardian) vía CR-002. Habilita captura
+  semi-pasiva del input de navegación móvil mediante Tile de sesión, solo
+  durante sesiones explícitas del usuario. La observación pasiva en
+  background sin sesión explícita sigue prohibida.
+- **2026-04-28 — Revisión FS Watcher desktop: background-persistent.**
+  Aprobada por Orchestrator. El watcher arranca una única vez en el primer
+  `Focused(true)` y permanece activo mientras el usuario tenga directorios
+  activados; deja de ser foreground-only. La observación desktop sigue
+  limitada a directorios activados explícitamente por el usuario y D1
+  permanece intacta (sin lectura de contenidos).
+
+**Histórico (definición original, superada):**
+~~"Observer del MVP = Share Extension iOS. Desktop no observa."~~ Esta
+definición quedó obsoleta por D19 (Share Intent Android pasa a observer
+primario del MVP) y por la propia evolución de D9 con las dos extensiones
+anteriores.
 
 ### D10
 Fase 0 se divide en 0a y 0b.
@@ -492,3 +518,4 @@ Se recomienda:
 | 2026-04-29 | D20, D21, D22 | OD-007 — D22 (mobile standalone tier paid) aplazada. D20/D21 ratifican que la app Android es soporte multi-dispositivo del Usuario A, con sync bidireccional vía Google Drive relay. |
 | 2026-05-04 | 5, 6 (sync), 13, 14 Fase 0b | Alineación de Sync Layer con D19/D21: Google Drive pasa a relay primario, iCloud queda como secundario para track iOS. Marcas `[ACTUALIZADO por D19]` añadidas para trazabilidad. |
 | 2026-05-04 | 14 Fase 1 | CR-003 — registro retroactivo del movimiento del FS Watcher de Fase 1 a Fase 2 (T-2-000). Fase 1 queda reducida a Panel B con plantillas. |
+| 2026-05-04 | 15 D9 | Alineación de D9 con la definición canónica de `decisions-log.md`. Se documentan las dos extensiones formales aprobadas (CR-002 observer Android semi-pasivo, 2026-04-27; revisión FS Watcher background-persistent, 2026-04-28) y se marca como superada la definición original "Observer del MVP = Share Extension iOS". |
