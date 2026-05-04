@@ -411,3 +411,159 @@ explícitamente fuera de scope hasta resolver dos bloqueos externos
 (Privacy Guardian + capturas) y emitir AR-2-006. Una vez resueltos esos
 bloqueos, una revisión QA específica de T-2-004 cerrará el ciclo y
 desbloqueará D14 + cierre formal de Fase 2.
+
+---
+
+## Adenda 1 — `pattern_id` no determinístico (T-2-001) — fix directo sin reapertura de AR
+
+addendum_id: QA-REVIEW-2-001-A1
+addendum_date: 2026-05-04
+addendum_author: QA Auditor
+status: hallazgo + fix aplicados in-flight; AR-2-003 NO se reabre por
+  decisión de Orchestrator (variante de proceso aceptada — fix directo
+  documentado aquí sustituye reapertura formal).
+
+### Hallazgo
+
+Durante la verificación manual del flujo Bloquear/Desbloquear del Privacy
+Dashboard (T-2-004) en la sesión de capturas requerida para Privacy
+Guardian (HO-025, 2026-05-04), se observó que el botón "Bloquear" en
+`PatternsSection.tsx` no producía el cambio visual esperado a "Desbloquear"
+tras el clic. La consola del WebView no reportaba error de invocación.
+
+Diagnóstico de causa raíz en `src-tauri/src/pattern_detector.rs:283`:
+
+```rust
+pattern_id: Uuid::new_v4().to_string(),
+```
+
+`Uuid::new_v4()` es aleatorio. Cada invocación de `detect_patterns()`
+generaba un `pattern_id` distinto para el mismo patrón conceptual. Flujo
+roto end-to-end:
+
+1. Usuario click Bloquear en patrón P (id `uuid_A`).
+2. `block_pattern("uuid_A")` persiste `uuid_A` en `pattern_blocks`. ✅
+3. `refresh()` invoca `get_detected_patterns` → `detect_patterns()`
+   regenera P con id `uuid_B` (random).
+4. `is_blocked = blocked_set.contains("uuid_B")` → **false**.
+5. Botón sigue mostrando "Bloquear" indefinidamente.
+
+### Por qué pasó silenciosamente la cadena de revisiones
+
+- Test `pattern_detector::tests::test_pattern_id_is_uuid` (línea 408 del
+  archivo previo al fix): verificaba únicamente que el `pattern_id` fuese
+  un UUID válido, no su determinismo.
+- AR-2-003 declaró D8 (determinismo, baseline sin LLM) verificado para
+  T-2-001. La verificación se basó en los tests existentes y en revisión
+  estática del módulo, no en ejecución del flujo block/refresh end-to-end.
+- `qa-review-phase-2.md` §1.4 ("D8 — determinismo, sin LLM") aprobó D8
+  para T-2-001 citando `test_pattern_id_is_uuid` y ausencia de imports
+  LLM. **Esta verificación era insuficiente.** El test no cubría el
+  invariante crítico: dos invocaciones consecutivas con mismos inputs
+  deben producir el mismo `pattern_id`.
+
+### Impacto
+
+- **T-2-001 / D8**: incumplido en `pattern_id`. El resto del módulo
+  (signatures, frequencies, ventanas temporales) sí es determinístico
+  según `test_determinism_bit_exact` del Trust Scorer, pero el `pattern_id`
+  era el campo no estable.
+- **T-2-004 criterio 11 (TS-2-004 línea 1002-1004, "Botón Bloquear/Desbloquear
+  funcional")**: NO se cumplía en runtime real, aunque
+  `cargo test` y `tsc --noEmit` pasaban limpios. Bug oculto a tests
+  unitarios y a inspección estática.
+- **HO-025 (revisión Privacy Guardian)**: bloqueado hasta fix porque la
+  captura 5 requerida ("patrón bloqueado + otro desbloqueado", TS-2-004
+  línea 814) no era reproducible en la app.
+- **`pattern_blocks` huérfanos**: cualquier `pattern_id` persistido antes
+  del fix queda como entrada huérfana en la tabla `pattern_blocks`. No
+  causa error funcional (la cardinalidad es baja y no se referencia desde
+  ningún join), pero conviene dejar registrado.
+
+### Fix aplicado
+
+Repositorio FlowWeaver, rama `main`. Dos commits atómicos:
+
+| Commit | Mensaje | Archivos |
+|---|---|---|
+| `bfd04e5` | `fix: pattern_id determinístico — UUIDv5 desde signature en vez de random v4` | `src-tauri/src/pattern_detector.rs` (44 insertions, 1 deletion) |
+| `1f834a4` | `test: verificar determinismo de pattern_id` | `src-tauri/src/pattern_detector.rs` (20 insertions) |
+
+Sustitución de `Uuid::new_v4()` por `derive_pattern_id()` que canonicaliza
+los inputs estables del patrón conceptual (time_bucket, day_of_week_mask,
+category_signature ordenado con weights formateados a 6 decimales,
+domain_signature ordenado idem) y aplica `Uuid::new_v5(&PATTERN_NAMESPACE,
+canonical.as_bytes())`.
+
+`PATTERN_NAMESPACE` es un UUID fijo del proyecto declarado como
+`const` en el módulo (`b3f1c000-face-4f10-9a7e-fa5e7057a1d0`). UUIDv5 es
+SHA-1 sobre namespace + name → idempotente bit-exact.
+
+Las features `v4` y `v5` ya estaban habilitadas en `Cargo.toml` línea 20
+(`uuid = { version = "1", features = ["v4", "v5"] }`) — no requirió
+cambio de dependencias.
+
+### Test añadido
+
+`pattern_detector::tests::test_pattern_id_is_deterministic`:
+
+```rust
+let run1 = detect_patterns(db.conn(), &test_config()).expect("detect 1");
+let run2 = detect_patterns(db.conn(), &test_config()).expect("detect 2");
+assert!(!run1.is_empty());
+assert_eq!(run1.len(), run2.len(), "pattern count diverged between runs");
+for (a, b) in run1.iter().zip(run2.iter()) {
+    assert_eq!(a.pattern_id, b.pattern_id, "pattern_id no determinístico para mismo input");
+}
+```
+
+Resultado: `cargo test --lib pattern_detector` reporta 5 tests pasando
+(los 4 originales + `test_pattern_id_is_deterministic`). Suite global
+post-fix: 70 pass / 0 fail / 1 ignored externo (incremento de +1 vs
+revisión original por el test nuevo).
+
+### Verificación funcional en runtime
+
+Ejecutado en Privacy Dashboard de la app desktop (`tauri dev` con
+hot-reload tras fix, 2026-05-04):
+
+- Click "Bloquear" en patrón listado → botón cambia a "Desbloquear" ✅
+- Click "Desbloquear" → revierte a "Bloquear" ✅
+- Confirmación verbal del Orchestrator: "ya funciona el boton".
+
+### Decisiones de proceso
+
+1. **No se reabre AR-2-003.** Decisión del Orchestrator, 2026-05-04: fix
+   directo documentado en esta adenda sustituye reapertura formal.
+   Asimetría aceptada como variante de proceso (paralelo a la Brecha A
+   ya documentada en §6.1).
+2. **`qa-review-phase-2.md` §1.4 (D8 T-2-001) queda corregido por esta
+   adenda.** Lectura combinada: revisión original + adenda = D8
+   verificado tras fix. Antes del fix, D8 estaba parcialmente incumplido
+   en `pattern_id`; el resto del determinismo del módulo (signatures,
+   frequencies, ventanas) no se ve afectado.
+3. **No se cambia el approval_date original** de la revisión. La adenda
+   se identifica por `addendum_date: 2026-05-04`.
+4. **`pattern_blocks` huérfanos pre-fix**: aceptados como residuo inocuo.
+   No bloquea Privacy Guardian. Si interfiere con Pruebas funcionales
+   futuras, limpieza vía `DELETE FROM pattern_blocks` (acción del
+   Orchestrator si decide).
+
+### Lecciones para futuros QA
+
+- Tests de "es UUID válido" son insuficientes para verificar D8. Cuando
+  D8 declare determinismo de un campo, el test debe ejecutar la
+  generación dos veces con mismos inputs y comparar bit-exact.
+- Verificación funcional manual del flujo end-to-end (no solo `cargo
+  test` + `tsc`) debe incluirse al menos una vez por entregable de
+  Fase 2 antes de declarar QA aprobado. Esta adenda nace de la
+  verificación manual posterior, no del review original.
+
+### Estado tras la adenda
+
+- T-2-001: APROBADO (post-fix). D8 verificado.
+- T-2-002, T-2-003, T-2-000: APROBADOS sin cambio (no afectados por el
+  bug).
+- T-2-004 criterio 11: ahora cumplible end-to-end. Capturas requeridas
+  por HO-025 desbloqueadas.
+- D14: sigue activo, transitivo a cierre T-2-004.
