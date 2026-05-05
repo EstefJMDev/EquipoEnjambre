@@ -90,6 +90,7 @@ en este dispositivo.
 **Implicación GDPR (Artículo 15 — Derecho de acceso):**
 El usuario tiene derecho a acceder a TODOS sus datos, incluyendo los ocultos en
 Modo Flexible. La app debe respetar este derecho.
+- RGPD Art. 15: https://gdpr-info.eu/art-15-gdpr/
 
 **Condición obligatoria (AC en T-3-026):**
 En Modo Flexible, la sección de configuración D30 debe incluir el acceso:
