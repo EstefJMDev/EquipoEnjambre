@@ -98,8 +98,9 @@ risks_of_misinterpretation:
   domain/category/extension/estado de confianza
 - hacer la State Machine consultiva durante la calibración de umbrales (T-3-003) —
   viola D4; la calibración ajusta parámetros de entrada, no la autoridad del módulo
-- activar T-3-005 (LLM) sin decisión explícita del Orchestrador basada en datos de beta
-  — viola D8; el LLM no puede introducirse como dependencia implícita
+- tratar la síntesis LLM (T-3-009 vía proxy) como requisito del sistema en lugar de
+  funcionalidad opt-in — viola D8; el baseline con plantillas locales debe funcionar
+  sin proxy en cualquier dispositivo (T-3-005 superseded por D23)
 - comenzar T-3-004 (observer Android) sin TS formal aprobada por Technical Architect
   y Privacy Guardian — viola el contrato de CR-002 y D9 extensión
 - adelantar usuarios reales antes de cerrar P-0 y P-1 — estos prerequisitos son
