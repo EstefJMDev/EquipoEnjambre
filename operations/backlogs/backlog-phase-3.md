@@ -54,6 +54,25 @@ in_scope:
   PGR-CR-004. Implementación paralelizable a la infraestructura de beta —
   no depende de P-0/P-1.
 
+Bloque mobile (CR-006, aprobado HO-031, 2026-05-05):
+[BLOQUEADO GLOBAL — T-3-014 a T-3-028 no pueden comenzar hasta cierre formal de
+T-3-007 a T-3-013 (desktop validado en beta cerrada)]
+- T-3-014: Schema RawEvent con tipo synthesis_generated — compatibilidad hacia atrás
+- T-3-015: Cliente Kotlin del proxy — SSE streaming, manejo de errores SynthesisError
+- T-3-016: Schema syntheses replicado en SQLCipher mobile — idéntico al desktop
+- T-3-017: Plantillas locales mobile (25 categorías) — sin proxy, sin red [paralelizable]
+- T-3-018: Vista agrupada por intención — reemplaza galería cronológica
+- T-3-019: Sistema de síntesis proactiva con badge silencioso
+- T-3-020: Botón manual "Generar ahora" — síntesis bajo demanda
+- T-3-021: Renderizador Markdown mobile + botones Copiar y Compartir
+- T-3-022: Privacy Dashboard mobile con sección síntesis
+- T-3-023: Diálogo de consentimiento mobile (D25)
+- T-3-024: Configuración D28 — niveles A/B/C por categoría [paralelizable]
+- T-3-025: Configuración D29 — perfiles con horarios (paid) [paralelizable]
+- T-3-026: Configuración D30 — filtro por dispositivo (paid modo estricto) [paralelizable]
+- T-3-027: Sync bidireccional syntheses + configuración D28/D29 vía relay
+- T-3-028: Rate limiting freemium mobile — contador + UI "X de 5 síntesis este mes"
+
 out_of_scope:
 - distribución en Google Play Store o Microsoft Store (Fase 3 es beta cerrada directa)
 - iOS Share Extension y Sync Layer (track paralelo — bloqueo de entorno macOS)
@@ -168,6 +187,51 @@ Síntesis LLM (CR-005, aprobado HO-029, 2026-05-05):
         │
         └──► T-3-013  Sistema de prompts server-side por categoría
                  [BLOQUEADO hasta T-3-007]
+
+════════════════════════════════════════════════════════
+DEPENDENCIA GLOBAL BLOQUEANTE — BLOQUE MOBILE (CR-006)
+T-3-014 a T-3-028 BLOQUEADAS hasta cierre formal de
+T-3-007 a T-3-013 (desktop validado en beta cerrada)
+════════════════════════════════════════════════════════
+
+Desktop cerrado (T-3-007 a T-3-013)
+    │
+    ▼
+T-3-014  Schema RawEvent — synthesis_generated + schema_version 2
+    │
+    ├──► T-3-016  Schema syntheses SQLCipher mobile
+    │        │
+    │        ├──► T-3-018  Vista agrupada por intención
+    │        │        (también depende de T-3-017)
+    │        │
+    │        └──► T-3-019  Síntesis proactiva + badge
+    │                 (también depende de T-3-015)
+    │
+    └──► T-3-015  Cliente Kotlin del proxy (SSE)
+             │
+             ├──► T-3-019  Síntesis proactiva + badge
+             │
+             ├──► T-3-020  Botón "Generar ahora"
+             │
+             ├──► T-3-021  Renderizador Markdown mobile
+             │
+             ├──► T-3-022  Privacy Dashboard mobile
+             │        │
+             │        └──► T-3-023  Consentimiento mobile (D25)
+             │
+             └──► T-3-028  Rate limiting freemium mobile
+
+T-3-017  Plantillas locales mobile 25 cats [PARALELIZABLE — sin bloqueante]
+
+T-3-024  Config D28 niveles A/B/C [PARALELIZABLE — sin bloqueante]
+    │
+    └──► T-3-025  Config D29 perfiles paid
+
+T-3-026  Config D30 filtro dispositivo [PARALELIZABLE — sin bloqueante]
+
+T-3-014 + T-3-016
+    │
+    └──► T-3-027  Sync bidireccional syntheses + config D28/D29
 ```
 
 P-0 y P-1 no bloquean la producción del backlog ni las tareas documentales y de
@@ -1396,6 +1460,307 @@ mecanismo de versionado para compatibilidad con clientes.
 - [ ] El endpoint acepta `prompt_version: "v1"` y lo usa correctamente.
 - [ ] Versión v1 sigue disponible tras despliegue de v2 (si hubiera).
 - [ ] Ningún prompt incluye instrucciones que requieran url completa o contenido de página.
+
+---
+
+## Tareas Mobile Autónomo — T-3-014 a T-3-028
+
+Aprobadas por CR-006 + AR-CR-006 + PGR-CR-006 + HO-031 (Orchestrator, 2026-05-05).
+
+> **DEPENDENCIA GLOBAL BLOQUEANTE:** ninguna tarea T-3-014 a T-3-028 puede comenzar
+> implementación hasta cierre formal de T-3-007 a T-3-013 (desktop validado en beta).
+> Las TS individuales se emitirán en prompts posteriores tras validar desktop.
+
+---
+
+### T-3-014 — Schema RawEvent con synthesis_generated
+
+task_id: T-3-014
+title: Extender raw_event.rs con tipo synthesis_generated y schema_version 2
+phase: 3
+owner_agent: Desktop Tauri Shell Specialist (Rust) + Android Share Intent Specialist (Kotlin)
+depends_on: T-3-007 a T-3-013 cerrados (BLOQUEO GLOBAL)
+aprobado_por: CR-006 + AR-CR-006 §1 + HO-031
+
+#### Objective
+Extender el schema de RawEvent para incluir el tipo `synthesis_generated` con
+compatibilidad hacia atrás. Clientes v1 (solo `resource_captured`) deben ignorar
+el nuevo tipo sin error.
+
+#### Acceptance Criteria
+- [ ] Tipo `synthesis_generated` añadido con campos: event_id, event_type,
+      anchor_key, anchor_type, category, synthesis_type, content_encrypted,
+      generated_at, source_device_id, schema_version.
+- [ ] `schema_version: 2` para nuevos eventos; clientes v1 ignoran sin panic.
+- [ ] Test de compatibilidad hacia atrás: deserializar un evento v2 en un
+      cliente que solo conoce v1 no produce error.
+- [ ] Schema equivalente en Kotlin para ShareIntentActivity y nuevos componentes.
+- [ ] `cargo test` sin regresiones.
+
+---
+
+### T-3-015 — Cliente Kotlin del Proxy (SSE)
+
+task_id: T-3-015
+title: SynthesisClient.kt — equivalente Kotlin de synthesis_engine.rs
+phase: 3
+owner_agent: Android Share Intent Specialist (Kotlin)
+depends_on: T-3-014
+aprobado_por: CR-006 + AR-CR-006 §2 + PGR-CR-006 (PG-M-001, PG-M-005) + HO-031
+
+#### Objective
+Implementar `SynthesisClient.kt` en Kotlin/Android usando OkHttp con soporte SSE.
+Equivalente funcional al `synthesis_engine.rs` de Rust.
+
+#### Acceptance Criteria
+- [ ] PG-M-001: test en Kotlin sobre signatura de función de payload — solo
+      5 inputs: category, titles, domains, synthesisType, language.
+- [ ] SSE parseado correctamente; chunks `data: {...}` procesados; `[DONE]` señal fin.
+- [ ] Manejo de errores: InvalidToken (401), RateLimitExceeded (429),
+      NoConnectivity, ProviderUnavailable (503).
+- [ ] PG-M-005: verificación pre-llamada que `consent_log` tiene registro válido
+      `synthesis_v1` antes de construir la petición.
+- [ ] Síntesis persistida cifrada en SQLCipher mobile vinculada a anchor_key.
+- [ ] Degradación graceful sin red: NoConnectivity sin crash.
+
+---
+
+### T-3-016 — Schema syntheses Replicado en Mobile
+
+task_id: T-3-016
+title: Tabla syntheses en SQLCipher mobile — idéntica al desktop
+phase: 3
+owner_agent: Android Share Intent Specialist (Kotlin)
+depends_on: T-3-014
+aprobado_por: CR-006 + AR-CR-006 §3 + HO-031
+
+#### Acceptance Criteria
+- [ ] Tabla `syntheses` con schema idéntico al desktop (AR-CR-005 §5).
+- [ ] `INSERT OR IGNORE` idempotente para síntesis con mismo anchor_key.
+- [ ] `ensure_schema` idempotente en múltiples arranques.
+
+---
+
+### T-3-017 — Plantillas Locales Mobile (25 Categorías)
+
+task_id: T-3-017
+title: templates.kt con las 25 categorías — sin proxy, sin red
+phase: 3
+owner_agent: Android Share Intent Specialist (Kotlin)
+depends_on: ninguna (PARALELIZABLE desde apertura Fase 3 mobile)
+aprobado_por: CR-006 + HO-031
+
+#### Objective
+Equivalente Kotlin de `templates.ts` con las mismas 25 categorías y acciones
+en español. Es la funcionalidad free ilimitada base para listados y agrupaciones.
+
+#### Acceptance Criteria
+- [ ] Las 25 categorías presentes con 3 acciones en español cada una.
+- [ ] Sin llamadas de red, sin LLM, sin proxy. Función pura.
+- [ ] Paridad de categorías con `templates.ts` (mismo conjunto de keys).
+
+---
+
+### T-3-018 — Vista Agrupada por Intención (Mobile)
+
+task_id: T-3-018
+title: Pantalla principal mobile con recursos agrupados por categoría + badges
+phase: 3
+owner_agent: Android Share Intent Specialist (Kotlin/Compose)
+depends_on: T-3-016, T-3-017
+aprobado_por: CR-006 + HO-031
+
+#### Acceptance Criteria
+- [ ] Pantalla de inicio muestra categorías con badge "X nuevos".
+- [ ] Reemplaza la lista cronológica actual sin regresar a ella.
+- [ ] Tap en categoría → listado de recursos de esa categoría.
+- [ ] Recursos de Nivel C (D28) visibles al abrir explícitamente la categoría.
+
+---
+
+### T-3-019 — Sistema de Síntesis Proactiva con Badge
+
+task_id: T-3-019
+title: Detector de material suficiente + trigger automático + badge silencioso
+phase: 3
+owner_agent: Android Share Intent Specialist (Kotlin)
+depends_on: T-3-015, T-3-016
+aprobado_por: CR-006 + AR-CR-006 §4 + HO-031
+
+#### Objective
+Detectar cuando hay ≥3 recursos del mismo episodio, generar síntesis y mostrar
+badge en la app. Sin notificación push agresiva.
+
+#### Acceptance Criteria
+- [ ] Trigger se activa con ≥3 recursos del mismo episodio (Episode Detector mobile).
+- [ ] Badge aparece en la app (no notificación push del sistema).
+- [ ] La síntesis se genera en background, no bloqueando la UI.
+- [ ] Solo genera síntesis si `consent_log` tiene registro válido (PG-M-005).
+- [ ] Rate limit: si el contador local dice 0 restantes, no genera (T-3-028).
+
+---
+
+### T-3-020 — Botón Manual "Generar Ahora"
+
+task_id: T-3-020
+title: Acción explícita de síntesis bajo demanda en cualquier episodio
+phase: 3
+owner_agent: Android Share Intent Specialist (Kotlin/Compose)
+depends_on: T-3-015
+aprobado_por: CR-006 + HO-031
+
+#### Acceptance Criteria
+- [ ] Botón visible en cualquier episodio detectado con material suficiente.
+- [ ] Solicita síntesis aunque T-3-019 no la haya disparado aún.
+- [ ] Degradación graceful sin red: mensaje claro al usuario.
+- [ ] Rate limit respetado (contador local de T-3-028).
+
+---
+
+### T-3-021 — Renderizador Markdown Mobile + Exportación
+
+task_id: T-3-021
+title: Componente Compose/WebView para Markdown streaming + Copiar + Compartir
+phase: 3
+owner_agent: Android Share Intent Specialist (Kotlin/Compose)
+depends_on: T-3-015
+aprobado_por: CR-006 + HO-031
+
+#### Acceptance Criteria
+- [ ] Markdown con headers `##` renderizado correctamente.
+- [ ] Streaming progresivo: la síntesis aparece chunk a chunk.
+- [ ] Botón "Copiar" funcional al portapapeles.
+- [ ] Botón "Compartir" funcional (Android Share Intent de salida).
+- [ ] Estados: idle, loading, streaming, complete, error.
+
+---
+
+### T-3-022 — Privacy Dashboard Mobile
+
+task_id: T-3-022
+title: Privacy Dashboard mobile con sección síntesis + toggle + contador
+phase: 3
+owner_agent: Android Share Intent Specialist (Kotlin/Compose)
+depends_on: T-3-015, T-2-004 cerrado ✓
+aprobado_por: CR-006 + PGR-CR-006 (PG-M-004) + HO-031
+
+#### Acceptance Criteria
+- [ ] 5 elementos requeridos presentes (equivalente PGR-CR-005 §5 adaptado a mobile).
+- [ ] Toggle desactivación elimina install_token del SQLCipher local.
+- [ ] Contador "X de 5 síntesis usadas este mes" visible (lee T-3-028).
+- [ ] Referencias a políticas Cloudflare y Anthropic presentes.
+
+---
+
+### T-3-023 — Diálogo de Consentimiento Mobile (D25)
+
+task_id: T-3-023
+title: Modal informado de consentimiento mobile — versionado synthesis_v1
+phase: 3
+owner_agent: Android Share Intent Specialist (Kotlin/Compose)
+depends_on: T-3-022
+aprobado_por: CR-006 + PGR-CR-006 (PG-M-004, PG-M-005) + HO-031
+
+#### Acceptance Criteria
+- [ ] PG-M-004: redacción exacta declarada en PGR-CR-006 §4.
+- [ ] `consent_log` en SQLCipher con `consent_version = "synthesis_v1"`.
+- [ ] "No activar" funcional — graceful degradation sin síntesis.
+- [ ] Verificación pre-proxy: sin registro válido en `consent_log`, no se llama al proxy.
+
+---
+
+### T-3-024 — Configuración D28 (Control por Categoría)
+
+task_id: T-3-024
+title: UI mobile para niveles A/B/C por categoría — toggle simple + avanzado
+phase: 3
+owner_agent: Android Share Intent Specialist (Kotlin/Compose)
+depends_on: ninguna (PARALELIZABLE)
+aprobado_por: CR-006 + PGR-CR-006 (PG-M-002, PG-M-008) + HO-031
+
+#### Acceptance Criteria
+- [ ] Toggle simple aplica Nivel C; acceso "Avanzado" para A o B.
+- [ ] PG-M-002: diálogo de confirmación obligatorio al activar Nivel A con
+      texto exacto: "Al activar 'No capturar' para [categoría], cualquier recurso
+      de esta categoría que compartas será descartado permanentemente..."
+- [ ] PG-M-008: acceso "[Categoría]: X recursos capturados en silencio. Ver todos →"
+      visible para Nivel C.
+
+---
+
+### T-3-025 — Configuración D29 (Perfiles Paid)
+
+task_id: T-3-025
+title: UI mobile para crear perfiles con horarios — solo paid
+phase: 3
+owner_agent: Android Share Intent Specialist (Kotlin/Compose)
+depends_on: T-3-024
+aprobado_por: CR-006 + HO-031
+
+#### Acceptance Criteria
+- [ ] UI de creación de perfiles con nombre, categorías y horarios.
+- [ ] Con suscripción inactiva: UI visible pero con paywall + CTA "Activar paid".
+- [ ] Prioridad de perfiles: vacaciones > fin de semana > trabajo.
+- [ ] Si ningún perfil aplica: captura normal de todas las categorías.
+
+---
+
+### T-3-026 — Configuración D30 (Filtro por Dispositivo)
+
+task_id: T-3-026
+title: UI mobile para filtro de entrada — modo flexible (free) + estricto (paid)
+phase: 3
+owner_agent: Android Share Intent Specialist (Kotlin/Compose)
+depends_on: ninguna (PARALELIZABLE)
+aprobado_por: CR-006 + PGR-CR-006 (PG-M-003) + HO-031
+
+#### Acceptance Criteria
+- [ ] Modo flexible (free): eventos de categorías bloqueadas ocultos pero presentes.
+- [ ] Modo estricto (paid): eventos descartados a la entrada (paywall para free).
+- [ ] PG-M-003: "Ver datos ocultos por filtro" en modo flexible con recuento y
+      opción de exportar o eliminar.
+- [ ] Configuración por dispositivo — no sincronizada con relay (D30 §"por dispositivo").
+
+---
+
+### T-3-027 — Sync Bidireccional Syntheses + Configuración
+
+task_id: T-3-027
+title: Sync D27 — syntheses mobile↔desktop + config D28/D29 cifrada vía relay
+phase: 3
+owner_agent: Desktop Tauri Shell Specialist (Rust) + Android Share Intent Specialist (Kotlin)
+depends_on: T-3-014, T-3-016
+aprobado_por: CR-006 + AR-CR-006 §5 + PGR-CR-006 (PG-M-006, PG-M-007) + HO-031
+
+#### Acceptance Criteria
+- [ ] PG-M-006: test E2E — síntesis generada en mobile recibida en desktop con
+      contenido descifrado idéntico al original.
+- [ ] PG-M-007: `data_encrypted` en evento `config_updated` cifrado con shared_key.
+- [ ] D30 (filtro dispositivo) NO se sincroniza — permanece local.
+- [ ] Idempotencia: recibir dos veces la misma síntesis es no-op (INSERT OR IGNORE).
+
+---
+
+### T-3-028 — Rate Limiting Freemium Mobile
+
+task_id: T-3-028
+title: Contador local + sincronización con proxy — UI "X de 5 síntesis este mes"
+phase: 3
+owner_agent: Android Share Intent Specialist (Kotlin)
+depends_on: T-3-015, T-3-007 ✓ (proxy con rate limit operativo)
+aprobado_por: CR-006 + AR-CR-006 §6 + HO-031
+
+#### Objective
+Implementar el contador local de síntesis del mes en mobile, sincronizado con el
+contador canónico del proxy via header `X-Synthesis-Remaining`.
+
+#### Acceptance Criteria
+- [ ] El proxy devuelve `X-Synthesis-Remaining: N` en cada respuesta; cliente
+      lo almacena en SQLCipher local.
+- [ ] UI muestra "X de 5 síntesis usadas este mes" con datos del contador local.
+- [ ] Al llegar a 0, botones de generación deshabilitados con mensaje explicativo.
+- [ ] Reset mensual: cliente detecta nuevo mes en primer uso y solicita contador
+      actualizado al proxy.
 
 ---
 
