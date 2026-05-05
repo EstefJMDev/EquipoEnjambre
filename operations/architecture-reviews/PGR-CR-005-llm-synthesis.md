@@ -70,6 +70,9 @@ Cloudflare no retiene ni usa los datos de inferencia para entrenar modelos propi
 El procesamiento ocurre en la infraestructura de Cloudflare bajo el acuerdo DPA
 de Cloudflare.
 
+- Workers AI Privacy: https://developers.cloudflare.com/workers-ai/privacy/
+- Cloudflare Privacy Policy: https://www.cloudflare.com/en-gb/privacypolicy/
+
 **Condición:** el proxy debe incluir en su documentación el enlace a la política
 de privacidad de Cloudflare Workers AI vigente en el momento del despliegue.
 El Privacy Dashboard (T-3-011) debe referenciar esta política en la sección
@@ -85,6 +88,10 @@ Anthropic API (tier de pago) opera bajo política de no-retention de datos: las
 peticiones API no se usan para entrenar modelos de Anthropic. Esto está declarado
 en los Términos de Servicio de la Anthropic API y en el Data Processing Agreement
 disponible para cuentas de API.
+
+**Referencia documental:**
+- Anthropic API Data Privacy: https://www.anthropic.com/legal/api-data-privacy
+- Anthropic Data Processing Agreement: https://www.anthropic.com/legal/dpa
 
 **Condición:** la API key de Anthropic debe configurarse en Cloudflare Worker
 environment variables (nunca hardcoded). La API key no debe aparecer en logs,
