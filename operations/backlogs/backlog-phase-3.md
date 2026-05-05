@@ -43,9 +43,12 @@ in_scope:
 - T-3-003: Calibración de umbrales State Machine con datos reales de beta
 - T-3-004: Observer semi-pasivo Android — Tile de sesión (tier paid, D9 extensión,
   CR-002) [BLOQUEADO hasta TS formal aprobada por Technical Architect y Privacy Guardian]
-- T-3-005: LLM local opcional (Ollama) — mejora sobre baseline determinístico,
-  con scope ampliado al Classifier por CR-004 (Capa B)
-  [CONDICIONAL — solo si datos de beta demuestran insuficiencia del baseline, D8]
+- T-3-005: LLM local opcional (Ollama) — **SUPERSEDED by D23 — ver T-3-009**.
+  Tarea cerrada. Ollama exige instalación de 4-8GB y RAM/CPU suficientes, contrario
+  al principio de cero fricción del onboarding (D24). El proxy backend (T-3-007)
+  cubre el caso de síntesis LLM sin fricción de instalación. La Capa B del Classifier
+  (CR-004, scope de T-3-005) permanece CONDICIONAL sobre datos de beta — si se reactiva,
+  se creará T-3-014 específica para Capa B con proxy local opcional.
 - T-3-006: Classifier Capa A — inferencia determinística (TLD + subdominio +
   keyword) cuando la tabla devuelve `otro`. Aprobado por CR-004 + AR-CR-004 +
   PGR-CR-004. Implementación paralelizable a la infraestructura de beta —
@@ -122,17 +125,49 @@ Fase 2 cerrada (pattern_detector.rs + trust_scorer.rs + state_machine.rs +
     │             y Privacy Guardian — puede arrancar en paralelo a T-3-001/
     │             T-3-002 una vez la TS esté aprobada; no depende de T-3-003]
     │
-    └──► T-3-005  LLM local opcional (Ollama) + scope extension Classifier
-                 [CONDICIONAL — requiere decisión explícita del Orchestrator
-                  basada en datos de beta de T-3-002/T-3-003; no puede
-                  activarse antes de que existan datos reales; Capa B del
-                  Classifier (CR-004) requiere además T-3-006 implementada]
+    └──► T-3-005  LLM local opcional (Ollama) — SUPERSEDED by D23
+                 [CERRADA. Ver T-3-009 para síntesis LLM vía proxy backend.]
 
     └──► T-3-006  Classifier Capa A — inferencia determinística
                  [APROBADO por CR-004 + AR-CR-004 + PGR-CR-004 + HO-028.
                   Paralelizable a T-3-001/T-3-002 — no depende de P-0/P-1.
                   Mejora la calidad de la clasificación que alimentará la
                   telemetría sin cambiar el schema declarado en T-3-002.]
+
+Síntesis LLM (CR-005, aprobado HO-029, 2026-05-05):
+
+    Fase 2 cerrada
+        │
+        ▼
+    T-3-007  Cloudflare Worker proxy (flowweaver-proxy)
+        │    [BLOQUEADO hasta TS formal Technical Architect]
+        │
+        ├──► T-3-008  Install token + onboarding
+        │        [BLOQUEADO hasta T-3-007]
+        │
+        │    T-3-007 + T-3-008
+        │        │
+        │        ▼
+        ├──► T-3-009  Synthesis engine (Rust, src-tauri)
+        │        [BLOQUEADO hasta T-3-007, T-3-008, T-3-003]
+        │
+        │        T-3-009
+        │            │
+        │            ▼
+        ├──► T-3-010  SynthesisView (React)
+        │        [BLOQUEADO hasta T-3-009]
+        │
+        ├──► T-3-011  Privacy Dashboard sección síntesis
+        │        [BLOQUEADO hasta T-2-004 cerrado ✓]
+        │
+        │    T-3-008 + T-3-011
+        │        │
+        │        ▼
+        ├──► T-3-012  Diálogo de consentimiento primer uso
+        │        [BLOQUEADO hasta T-3-008, T-3-011]
+        │
+        └──► T-3-013  Sistema de prompts server-side por categoría
+                 [BLOQUEADO hasta T-3-007]
 ```
 
 P-0 y P-1 no bloquean la producción del backlog ni las tareas documentales y de
@@ -1052,8 +1087,9 @@ Antes de pasar el gate de Fase 3, debe existir evidencia de que:
 - la telemetría opera exclusivamente dentro del marco de D1: ningún evento de
   telemetría contiene url, title ni ningún campo prohibido — verificado por Privacy
   Guardian
-- el LLM sigue siendo opcional: el baseline determinístico funciona correctamente
-  sin Ollama en todos los dispositivos de la beta
+- la síntesis LLM sigue siendo opt-in: el baseline determinístico (plantillas
+  estáticas) funciona correctamente sin proxy y sin red en todos los dispositivos
+  de la beta (D8 — T-3-005 superseded, síntesis ahora en T-3-009 vía proxy)
 - T-3-004 (observer Android) solo se ha implementado si existe TS formal aprobada
   por Technical Architect y Privacy Guardian; si no se implementó, el gate no
   queda bloqueado por su ausencia
@@ -1069,8 +1105,297 @@ Antes de pasar el gate de Fase 3, debe existir evidencia de que:
   evento de telemetría que contenga url, title o campos prohibidos por D1)
 - los objetivos de calibración de umbrales no están documentados con datos reales
   (propuesta de calibración sin evidencia cuantitativa)
-- el LLM se ha convertido en dependencia implícita del sistema (el baseline no
-  funciona sin Ollama)
+- la síntesis LLM se ha convertido en dependencia implícita del sistema (el
+  baseline no funciona sin el proxy — viola D8; la síntesis es siempre opt-in)
+
+---
+
+## Tareas De Síntesis LLM — T-3-007 a T-3-013
+
+Aprobadas por CR-005 + AR-CR-005 + PGR-CR-005 + HO-029 (Orchestrator, 2026-05-05).
+Ninguna implementación puede comenzar sin TS formal aprobada por Technical Architect.
+
+---
+
+### T-3-007 — Cloudflare Worker Proxy (flowweaver-proxy)
+
+task_id: T-3-007
+title: Cloudflare Worker proxy — stateless, zero-log, validación tokens, SSE
+phase: 3
+owner_agent: Desktop Tauri Shell Specialist (JS/TS) + Technical Architect (TS formal)
+depends_on: TS formal Technical Architect (PREREQUISITO BLOQUEANTE)
+repo: flowweaver-proxy (independiente — ver AR-CR-005 §2)
+aprobado_por: CR-005 + AR-CR-005 + HO-029
+
+> **BLOQUEADO hasta TS formal de Technical Architect.**
+
+#### Objective
+
+Implementar el Cloudflare Worker que actúa como proxy de síntesis entre los clientes
+FlowWeaver y los providers LLM (Cloudflare Workers AI primario, Claude Haiku fallback).
+
+#### In Scope
+
+- POST /synthesize: validación de install_token contra Cloudflare KV, rate limiting
+  (5 req/día tier free), construcción del prompt especializado por synthesis_type,
+  relay al provider activo, streaming SSE de vuelta al cliente.
+- Fallback de provider: Cloudflare AI (8s timeout) → Claude Haiku (10s timeout) →
+  503 estructurado.
+- Prompts server-side versionados (v1 para los 4 tipos de síntesis beta).
+- Gestión de secretos exclusivamente vía Cloudflare environment variables.
+
+#### Out of Scope
+
+- Más de 4 tipos de síntesis (los 4 de beta: entretenimiento, cocina, noticias, tecnología).
+- Base de datos de usuarios, autenticación por email, historial de peticiones del usuario.
+- Logs con contenido de peticiones (zero-log por diseño).
+
+#### Acceptance Criteria
+
+- [ ] POST /synthesize con token válido devuelve SSE válido para los 4 tipos.
+- [ ] Token inválido → 401 sin información adicional.
+- [ ] Rate limit superado → 429 con header Retry-After.
+- [ ] Sintaxis SSE correcta: chunks `data: {...}\n\n`, terminador `data: [DONE]\n\n`.
+- [ ] Fallback a Claude Haiku cuando Cloudflare AI no responde en 8s.
+- [ ] Ambos providers fallidos → 503 `{"error": "PROVIDER_UNAVAILABLE"}`.
+- [ ] API keys solo en Cloudflare env vars — no hardcoded, no en logs (PG-004).
+- [ ] wrangler deploy sin errores. Worker accesible en URL de producción.
+
+#### Required Handoff
+
+Technical Architect → TS formal → Privacy Guardian re-auditoría → implementación.
+
+---
+
+### T-3-008 — Install Token + Onboarding
+
+task_id: T-3-008
+title: Install token UUIDv4 + pantalla de onboarding de síntesis
+phase: 3
+owner_agent: Desktop Tauri Shell Specialist
+depends_on: T-3-007 (proxy operativo para validar flujo end-to-end)
+aprobado_por: CR-005 + HO-029
+
+> **BLOQUEADO hasta T-3-007.**
+
+#### Objective
+
+Generar y persistir el install_token en el primer arranque de la app. Añadir la
+pantalla de onboarding de síntesis donde el beta tester introduce su token.
+
+#### In Scope
+
+- Generación de UUIDv4 en primer arranque (si no existe token en SQLCipher).
+- Pantalla onboarding: campo de introducción de token + botón "Activar síntesis"
+  + botón "Continuar sin síntesis" (graceful degradation).
+- Persistencia del token cifrado en SQLCipher.
+- Comando Tauri `set_synthesis_token(token: String) -> Result<(), String>`.
+- Comando Tauri `get_synthesis_token_status() -> Result<TokenStatus, String>`
+  donde TokenStatus = `{ is_set: bool }` (nunca devuelve el token en claro).
+
+#### Out of Scope
+
+- Generación de tokens por el backend (los tokens los genera el PO manualmente).
+- Validación de formato del token (cualquier string no vacío es aceptable en cliente).
+- UI de gestión de tokens en Privacy Dashboard (eso es T-3-011).
+
+#### Acceptance Criteria
+
+- [ ] Token generado en primer arranque y persistido cifrado en SQLCipher.
+- [ ] `get_synthesis_token_status()` devuelve `{ is_set: true }` si existe token.
+- [ ] Pantalla onboarding muestra campo de token + dos opciones (activar / continuar sin).
+- [ ] "Continuar sin síntesis" es funcional — el sistema opera sin token (D8).
+- [ ] El token no aparece en claro en ningún log ni en la respuesta de ningún comando.
+- [ ] `cargo test` sin regresiones. `npx tsc --noEmit` limpio.
+
+---
+
+### T-3-009 — Synthesis Engine (Rust)
+
+task_id: T-3-009
+title: Módulo synthesis_engine en src-tauri — payload, petición SSE, persistencia
+phase: 3
+owner_agent: Desktop Tauri Shell Specialist (Rust)
+depends_on: T-3-007 (proxy), T-3-008 (install token), T-3-003 (State Machine calibrada)
+aprobado_por: CR-005 + AR-CR-005 + PGR-CR-005 (PG-001) + HO-029
+
+> **BLOQUEADO hasta T-3-007, T-3-008 y TS formal Technical Architect.**
+
+#### Objective
+
+Implementar `src-tauri/src/synthesis_engine.rs` — el módulo que construye el payload
+D25-compliant, llama al proxy, parsea el SSE y persiste la síntesis cifrada en SQLCipher.
+
+#### In Scope
+
+- `fn build_synthesis_payload(category, titles, domains, synthesis_type, language)`
+  con los únicos inputs autorizados por D25. Test estructural PG-001.
+- Llamada HTTP al proxy con install_token como header Authorization.
+- Parser SSE de chunks de texto (acumulación hasta `\n\n`, terminador `[DONE]`).
+- Tabla `syntheses` en SQLCipher (schema AR-CR-005 §5).
+- Integración con State Machine: síntesis disponible solo en estado Trusted o superior.
+- Degradación graceful sin red: el módulo no lanza errores fatales; retorna
+  `SynthesisError::NoConnectivity` que SynthesisView muestra al usuario.
+
+#### Out of Scope
+
+- Más de 4 tipos de síntesis (solo entretenimiento, cocina, noticias, tecnología).
+- Síntesis en mobile (D24 — ShareIntentActivity.kt sin cambios).
+- LLM local (T-3-005 superseded).
+
+#### Acceptance Criteria
+
+- [ ] PG-001: test estructural sobre signatura de `build_synthesis_payload` — solo
+      5 inputs del tipo declarado; sin `url`, `title_raw`, ni referencias a `NewResource`.
+- [ ] Payload al proxy cumple D25: solo category + titles + domains + synthesis_type + language.
+- [ ] Schema `syntheses` creado vía `ensure_schema` idempotente.
+- [ ] Síntesis persistida cifrada con AES-256-GCM (clave = local_key de instalación).
+- [ ] Sin red → `SynthesisError::NoConnectivity` (no panic, no error fatal).
+- [ ] `cargo test` sin regresiones.
+
+---
+
+### T-3-010 — SynthesisView (React)
+
+task_id: T-3-010
+title: Componente SynthesisView — markdown streaming, copiar, exportar
+phase: 3
+owner_agent: Desktop Tauri Shell Specialist (React/TypeScript)
+depends_on: T-3-009 (synthesis_engine con streaming)
+aprobado_por: CR-005 + HO-029
+
+> **BLOQUEADO hasta T-3-009.**
+
+#### Objective
+
+Implementar `src/components/SynthesisView.tsx` — renderiza markdown streaming
+progresivo de la síntesis. Visible en AnticipatedWorkspace según estado SM.
+
+#### In Scope
+
+- Estados del componente: idle, loading, streaming, complete, error.
+- Renderizado de markdown con streaming progresivo (actualizaciones chunk a chunk).
+- Botón "Copiar" (portapapeles) + botón "Exportar como Markdown" (descarga .md).
+- Visible en AnticipatedWorkspace: botón explícito en estado Trusted, automática en Autonomous.
+- Manejo de `SynthesisError::NoConnectivity` con mensaje claro al usuario.
+
+#### Out of Scope
+
+- Exportación PDF.
+- Historial de síntesis anteriores (solo síntesis actual del episodio activo).
+- Síntesis en mobile.
+
+#### Acceptance Criteria
+
+- [ ] Los 5 estados del componente se renderizan sin errores (idle, loading, streaming, complete, error).
+- [ ] El markdown se renderiza correctamente con headers `##` y texto en negrita.
+- [ ] Botón "Copiar" funcional con feedback visual de confirmación.
+- [ ] Botón "Exportar Markdown" genera archivo `synthesis-{date}.md` descargable.
+- [ ] `npx tsc --noEmit` limpio.
+
+---
+
+### T-3-011 — Privacy Dashboard Sección Síntesis
+
+task_id: T-3-011
+title: Privacy Dashboard — nueva sección "Síntesis inteligente"
+phase: 3
+owner_agent: Desktop Tauri Shell Specialist (React/TypeScript)
+depends_on: T-2-004 cerrado ✓ (Fase 2 cerrada — PIR-005-addendum)
+aprobado_por: CR-005 + PGR-CR-005 (PG-002, PG-005, PG-006) + HO-029
+
+> **DESBLOQUEADO — T-2-004 ya cerrado.**
+
+#### Objective
+
+Añadir sección "Síntesis inteligente" al Privacy Dashboard con los 5 elementos
+requeridos por PGR-CR-005 §5. No regresionar el dashboard existente.
+
+#### In Scope (5 elementos obligatorios — PG-002)
+
+1. Texto exacto de qué se envía al proxy ("...solo: la categoría, los títulos, los dominios...").
+2. Destino + referencia a política de Cloudflare Workers AI (PG-005).
+3. Política de retención ("el proxy no almacena tu contenido").
+4. Toggle de activación/desactivación (desactivar elimina install_token — PG-006).
+5. Contador de uso: "X de 5 síntesis usadas hoy".
+
+#### Out of Scope
+
+- Historial de síntesis generadas.
+- Configuración del número de síntesis por día (fijado en 5 tier free).
+
+#### Acceptance Criteria
+
+- [ ] Los 5 elementos de PGR-CR-005 §5 presentes y con texto correcto.
+- [ ] Toggle desactivación elimina install_token del SQLCipher local (PG-006).
+- [ ] Referencia a política Cloudflare Workers AI presente (PG-005).
+- [ ] `npx tsc --noEmit` limpio. Sin regresión en dashboard existente.
+
+---
+
+### T-3-012 — Diálogo de Consentimiento Primer Uso
+
+task_id: T-3-012
+title: Modal de consentimiento informado para síntesis — primer uso
+phase: 3
+owner_agent: Desktop Tauri Shell Specialist (React/TypeScript)
+depends_on: T-3-008 (install token), T-3-011 (sección Privacy Dashboard)
+aprobado_por: CR-005 + PGR-CR-005 (PG-003) + HO-029
+
+> **BLOQUEADO hasta T-3-008 y T-3-011.**
+
+#### Objective
+
+Implementar el modal de consentimiento informado que aparece antes del primer uso
+de síntesis. Registrar el consentimiento en SQLCipher con versión del aviso.
+
+#### In Scope
+
+- Modal con redacción exacta declarada en PGR-CR-005 §6.
+- Acciones: "Activar síntesis" (primario) + "No activar" (secundario — graceful degradation).
+- Tabla `consent_log` en SQLCipher: (consent_type, consent_version, accepted_at).
+- Verificación en cada arranque de que la versión del consentimiento registrado
+  coincide con la versión actual del aviso.
+
+#### Acceptance Criteria
+
+- [ ] Modal aparece únicamente en el primer uso de síntesis (no en cada arranque).
+- [ ] Redacción del modal coincide exactamente con PGR-CR-005 §6.
+- [ ] Consentimiento registrado en `consent_log` con `consent_version = "synthesis_v1"`.
+- [ ] "No activar" es funcional — el sistema opera sin síntesis (D8).
+- [ ] `npx tsc --noEmit` limpio.
+
+---
+
+### T-3-013 — Sistema de Prompts Server-Side por Categoría
+
+task_id: T-3-013
+title: Prompts especializados v1 para los 4 tipos de síntesis en flowweaver-proxy
+phase: 3
+owner_agent: Desktop Tauri Shell Specialist (JS/TS en flowweaver-proxy)
+depends_on: T-3-007 (proxy operativo)
+aprobado_por: CR-005 + AR-CR-005 §6 + HO-029
+
+> **BLOQUEADO hasta T-3-007.**
+
+#### Objective
+
+Crear los 4 prompts especializados v1 en `flowweaver-proxy/prompts/v1/` y el
+mecanismo de versionado para compatibilidad con clientes.
+
+#### In Scope
+
+- 4 prompts especializados (entretenimiento, cocina, noticias, tecnología) optimizados
+  para producir Markdown estructurado con headers `## sección`.
+- Versionado en directorio `prompts/v1/`; el endpoint acepta `prompt_version` (default "v1").
+- Compatibilidad garantizada: los clientes que envíen "v1" siempre recibirán el prompt v1.
+
+#### Acceptance Criteria
+
+- [ ] Los 4 prompts producen output en Markdown con al menos 2 headers `##`.
+- [ ] El endpoint acepta `prompt_version: "v1"` y lo usa correctamente.
+- [ ] Versión v1 sigue disponible tras despliegue de v2 (si hubiera).
+- [ ] Ningún prompt incluye instrucciones que requieran url completa o contenido de página.
 
 ---
 
