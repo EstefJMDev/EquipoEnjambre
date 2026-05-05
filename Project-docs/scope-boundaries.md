@@ -130,3 +130,64 @@ Incluye:
 
 5. Pensar que el LLM define el valor central
    Incorrecto: el baseline funcional es con plantillas.
+
+---
+
+## Excepción aprobada: proxy backend para síntesis LLM (D23, D25)
+
+**Fecha de aprobación:** 2026-05-05 — Orchestrator vía CR-005 + HO-029.
+
+### Contexto
+
+El principio fundacional de FlowWeaver es "100% local": los datos del usuario
+no salen del dispositivo. Esta sección documenta honestamente la única excepción
+aprobada a ese principio, sus límites exactos y las garantías que la hacen aceptable.
+
+### Qué se transmite al proxy (payload autorizado — D25)
+
+```json
+{
+  "category": "string (en claro — D1 autoriza)",
+  "titles": ["string (descifrado con consentimiento explícito — D25)"],
+  "domains": ["string (en claro — D1 autoriza)"],
+  "synthesis_type": "enum (entretenimiento | cocina | noticias | tecnología)",
+  "language": "string"
+}
+```
+
+### Qué NUNCA se transmite
+
+- URL completa de ningún recurso.
+- Contenido de páginas web (el sistema nunca lo lee — D1 núcleo).
+- Identidad del usuario (install_token es UUID sin vinculación a email ni cuenta).
+- Timestamps personales.
+- Datos de BD cifrados.
+- Cualquier campo prohibido por D1 en su núcleo.
+
+### Garantías del proxy
+
+- **Zero-retention**: el proxy no persiste, no logea contenido de las peticiones.
+- **Zero-log**: Cloudflare Workers AI no retiene datos de inferencia por diseño
+  de la plataforma (provider primario).
+- **Stateless**: el proxy no mantiene estado entre peticiones.
+- **Consentimiento explícito**: el usuario activa la síntesis en un diálogo modal
+  informado la primera vez. La desactivación elimina el install_token local.
+- **Revocación**: desactivar síntesis desde Privacy Dashboard elimina el
+  install_token; sin token, no hay peticiones al proxy.
+
+### Qué NO cambia
+
+- D1 en su núcleo: url y title siguen cifrados en BD local. El sistema sigue sin
+  acceder al contenido de páginas web.
+- D8: el baseline determinístico (plantillas estáticas) sigue funcionando sin
+  proxy y sin red. La síntesis LLM es opt-in, no un requisito del sistema.
+- La narrativa de privacidad del producto: "el sistema aprende lo que guardas,
+  pero tú controlas qué se envía fuera del dispositivo y puedes revocar en
+  cualquier momento."
+
+### Scope de la excepción
+
+Esta excepción aplica exclusivamente a la función de síntesis LLM (T-3-007 a T-3-013).
+Ningún otro módulo del sistema transmite datos fuera del dispositivo del usuario.
+La telemetría (T-3-002) sigue siendo local por defecto (sin endpoint externo en Fase 3).
+
