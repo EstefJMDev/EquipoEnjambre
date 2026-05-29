@@ -54,7 +54,48 @@ T-2-004  Privacy Dashboard completo
 **Lo que valida Fase 2:** aprendizaje longitudinal, escalera de confianza, tolerancia del usuario a automatización progresiva, Privacy Dashboard completo antes de beta.
 
 ### Fase siguiente: Fase 3
-Beta pública, métricas, calibración de umbrales, LLM local opcional.
+Reordenada por OD-008 (2026-05-12). Antes de la beta pública (objetivo
+original), Fase 3 ejecuta dos bloques pre-beta obligatorios:
+
+- **P-0 T-3-Hardening (1..10):** cierra R13 (migración crypto XOR→AES con
+  keychain del OS), R14 (validación relay con dispositivo Android físico
+  real), R15 (instrumentación local con `tracing` + diagnostics module),
+  más quality gate ejecutable, CSP estricta, decisión sobre código Kotlin
+  custom de `src-tauri/gen/android/`, y UX mínima para prueba con usuarios.
+- **P-1 T-3-Validation (1..3):** validation spec ligera con 3 hipótesis
+  máximo, protocolo de prueba con 5–10 usuarios reales, reporte UR-001.
+- **P-2 T-3-Hardening-11 (paralelizable):** Observation Levels Framework
+  como extensión técnica de D9.
+
+Tras UR-001 firmado se desbloquean: telemetría dentro de D1 (T-3-002),
+calibración State Machine (T-3-003), nuevas task-specs sobre síntesis
+(refinamientos), distribución beta directa (T-3-001).
+
+**Síntesis desktop (T-3-007..T-3-013) está IMPLEMENTADA y OPERATIVA.**
+OD-008 §7.bis preserva esa funcionalidad sin congelar ni revertir. La
+etiqueta P-3 sobre síntesis aplica sólo a nuevas task-specs futuras.
+
+**Bloque mobile (T-3-014..T-3-028, CR-006) permanece BLOQUEADO** hasta
+UR-001 validado, sin excepciones.
+
+### Framing operativo en tres niveles (OD-008)
+
+Sólo el primero es comunicable externamente hasta UR-001 validado.
+
+1. **Actual validado:** señales explícitas/manuales → episodio → workspace
+2. **Beta cercana:** señales explícitas + observadores autorizados
+3. **Visión futura (NO comunicar):** agente local de anticipación contextual
+
+### Trabajo prohibido hasta cierre de OD-008
+
+- Emitir D33 o cualquier decisión sobre categoría/posicionamiento
+- Reescribir vision.md o product-thesis.md
+- Producir UX spec formal o métricas framework formal
+- Renombrar fases existentes (nomenclatura "Fase A-G" descartada)
+- Reactivar D22, CR-002 o features mobile-only tier paid
+- Introducir telemetría remota (R15 es 100% local)
+- Eliminar el código XOR de `crypto.rs` (esperar 2 versiones tras
+  T-3-Hardening-5)
 
 ---
 

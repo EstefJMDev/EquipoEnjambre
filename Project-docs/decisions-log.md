@@ -203,6 +203,57 @@ competitiva del producto.
 
 ---
 
+### OD-008 — Reorientación pre-beta a validación (2026-05-12)
+
+**Estado:** APROBADA. No revoca OD-006 ni OD-007.
+
+**Qué hace:** reordena la ejecución de Fase 3 anteponiendo dos bloques
+nuevos antes del backlog operativo original:
+
+- **P-0 T-3-Hardening (10 sub-tareas):** cierra R13 (migración crypto
+  XOR→AES con keychain del OS), R14 (validación relay con dispositivo
+  Android físico real) y R15 (instrumentación local con `tracing` +
+  diagnostics module). Incluye quality gate ejecutable, CSP estricta
+  (la actual está `null`), decisión documentada sobre código Kotlin
+  custom en `src-tauri/gen/android/`, y UX mínima para prueba con
+  usuarios.
+- **P-1 T-3-Validation (3 sub-tareas):** validation spec ligera con
+  3 hipótesis máximo, protocolo de prueba con 5–10 usuarios reales,
+  reporte UR-001.
+- **P-2 T-3-Hardening-11 (paralelizable):** Observation Levels
+  Framework como extensión técnica de D9 (NO promesa de producto).
+
+**Cláusula de no-regresión (OD-008 §7.bis):** el bloque síntesis desktop
+(T-3-007..T-3-013) está implementado y operativo. OD-008 NO exige
+revertir, congelar ni esconder síntesis. La etiqueta P-3 aplica sólo a
+nuevas task-specs que extiendan o calibren esos módulos con datos reales.
+
+**Framing operativo en tres niveles (sólo el primero es comunicable
+externamente hasta UR-001 validado):**
+1. Actual validado: señales explícitas/manuales → episodio → workspace
+2. Beta cercana: señales explícitas + observadores autorizados
+3. Visión futura (NO comunicar): agente local de anticipación contextual
+
+**Trabajo prohibido hasta cierre de OD-008:**
+- Emitir D33 o cualquier decisión sobre posicionamiento de producto
+- Reescribir vision.md o product-thesis.md
+- Producir UX spec formal o métricas framework formal
+- Renombrar fases existentes (nomenclatura "Fase A-G" descartada)
+- Reactivar D22, CR-002 o features mobile-only tier paid
+- Introducir telemetría remota (R15 es 100% local hasta T-3-002 con
+  consentimiento)
+- Eliminar el código XOR de `crypto.rs` (esperar 2 versiones tras
+  T-3-Hardening-5)
+
+**Exit criteria:** T-3-Hardening-1..10 + T-3-Validation-1..3 cerrados
+con AR formal; Privacy Guardian firma T-3-Hardening-6/7; UR-001 reporte
+firmado. Si UR-001 invalida H1 → OD-009 con replanteamiento. Si H1+H3
+validan → desbloquea D33 y reescritura formal de vision.md.
+
+**Referencia:** OD-008-reorientacion-pre-beta-validacion.md
+
+---
+
 ## Regla operativa
 
 Si un documento posterior contradice este registro y no existe una propuesta

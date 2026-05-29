@@ -1,10 +1,83 @@
 # Backlog Funcional — Fase 3
 
 date: 2026-04-28
+last_updated: 2026-05-12
 owner_agent: Functional Analyst
 phase: 3
 status: APROBADO — AR-3-001 (2026-04-28)
+              REORDENADO — OD-008 (2026-05-12, pendiente AR-3-002)
 referenced_decision: OD-006-phase-3-activation.md
+                     OD-008-reorientacion-pre-beta-validacion.md
+
+---
+
+## Reordenamiento OD-008 (2026-05-12) — Pre-beta Hardening + Validation
+
+OD-008 reordena la ejecución de Fase 3 sin revocar OD-006 ni reescribir este
+backlog. La cadena de tareas T-3-001..T-3-028 se preserva pero se condiciona
+a la finalización de dos bloques nuevos que se anteponen:
+
+- **Bloque P-0 — T-3-Hardening (10 sub-tareas):** cierra R13 (migración
+  crypto), R14 (validación relay con dispositivo real), R15 (instrumentación
+  local) más quality gate ejecutable, CSP estricta, decisión sobre código
+  Android custom, y UX mínima para prueba con usuarios. Bloquea cualquier
+  NUEVA task-spec sobre T-3-002, T-3-003, T-3-007..T-3-028. Ver
+  §"Cláusula de no-regresión" abajo: el código de síntesis ya implementado
+  (T-3-007..T-3-013) se conserva operativo.
+
+- **Bloque P-1 — T-3-Validation (3 sub-tareas):** validation spec ligera,
+  protocolo de prueba con 5–10 usuarios reales, reporte UR-001. Bloquea
+  cualquier nuevo documento de visión, posicionamiento o UX spec formal.
+
+- **Bloque P-2 — T-3-Hardening-11 (1 tarea documental, paralelizable):**
+  Observation Levels Framework como extensión técnica de D9.
+
+### Tabla de prioridades efectiva tras OD-008
+
+| Prioridad | Tareas                                                     | Bloquea                          |
+|-----------|------------------------------------------------------------|----------------------------------|
+| **P-0**   | P-0 heredado (E2E relay) + P-1 heredado (FS Watcher BG) +  | beta pública y todo P-1..P-4     |
+|           | T-3-Hardening-1..10                                        |                                  |
+| **P-1**   | T-3-Validation-1..3                                        | claims/positioning y P-3/P-4     |
+| **P-2**   | T-3-Hardening-11, T-3-001, T-3-006 (CR-004)                | nada (paralelizables con P-0/P-1)|
+| **P-3**   | T-3-002, T-3-003, *nuevas TS* sobre T-3-007..T-3-013       | bloque mobile P-4                |
+| **P-4**   | T-3-014..T-3-028 (mobile CR-006)                           | —                                |
+| **BLOQ**  | T-3-004 (D22 aplazada), T-3-005 (superseded por D23)       | —                                |
+
+### Cláusula de no-regresión (OD-008 §7.bis)
+
+T-3-007..T-3-013 (bloque síntesis desktop) están IMPLEMENTADAS y se
+conservan OPERATIVAS. OD-008 NO exige revertir, deshabilitar, congelar
+ni esconder detrás de feature flag los módulos ya en producción:
+`synthesis_engine.rs`, `syntheses_store.rs`, `synthesis_tokens.rs`,
+`consent_log_store.rs`, `SynthesisView.tsx`, `SynthesisConsentModal.tsx`,
+auto-síntesis en `AnticipatedWorkspace.tsx`. La etiqueta P-3 aplica
+EXCLUSIVAMENTE a NUEVAS task-specs sobre estos módulos (refactor,
+calibración con datos reales, integración con métricas T-3-002,
+cambios funcionales visibles al usuario en síntesis).
+
+T-3-014..T-3-028 (bloque mobile CR-006) permanece BLOQUEADO sin
+excepción — ahí no hay código en producción que preservar.
+
+### Dependencia global introducida por OD-008
+
+T-3-Hardening-1..10 es PREDECESOR OBLIGATORIO de cualquier nueva TS
+sobre T-3-001, T-3-002, T-3-003, T-3-007..T-3-028. La sección
+`dependencies` del Functional Breakdown (más abajo) se interpreta a
+partir de OD-008 con esta dependencia añadida.
+
+### Trabajo prohibido hasta cierre de OD-008
+
+- Emitir D33 o cualquier decisión sobre categoría/posicionamiento de producto
+- Reescribir `vision.md` o `product-thesis.md`
+- Producir UX spec formal o métricas framework formal
+- Renombrar fases existentes (la nomenclatura "Fase A-G" queda descartada)
+- Reactivar D22, CR-002 o cualquier feature mobile-only tier paid
+- Introducir telemetría remota (R15 es 100% local hasta T-3-002 aprobada
+  con consentimiento explícito en P-3)
+- Eliminar el código XOR de `crypto.rs` hasta 2 versiones tras T-3-Hardening-5
+
+Ver OD-008 sección "Reorientation exit criteria" para los criterios de cierre.
 
 ---
 
@@ -1774,3 +1847,421 @@ de plataforma macOS. Son independientes del gate de Fase 3.
 | --- | --- | --- |
 | Share Extension iOS | Requiere macOS + Xcode | Pendiente — independiente de Fase 3 |
 | Sync Layer MVP (D6/iCloud) | Requiere Share Extension operativa | Pendiente — independiente de Fase 3 |
+
+---
+
+## Bloque T-3-Hardening — P-0 Pre-beta (OD-008, 2026-05-12)
+
+Reordenado por OD-008. Bloquea P-3 (T-3-007..T-3-013) y P-4 (T-3-014..T-3-028).
+
+### T-3-Hardening-1: Quality gate ejecutable
+
+priority: P-0
+owner: Technical Architect → Functional Analyst (TS)
+status: PENDIENTE — bloquea T-3-Hardening-2..10
+
+#### Objective
+Establecer un único comando `npm run quality` en FlowWeaver que ejecute
+lint + tsc --noEmit + vitest run + cargo fmt --check + cargo clippy con
+warnings denied + cargo test, y un workflow CI en `.github/workflows/ci.yml`
+que lo corra en cada PR.
+
+#### Acceptance Criteria
+- [ ] `npm run quality` definido en `FlowWeaver/package.json` y pasa en main
+- [ ] `.github/workflows/ci.yml` ejecuta `npm run quality` en push/PR a main
+- [ ] `.husky/pre-commit` con lint-staged + cargo fmt --check (no full build)
+- [ ] `FlowWeaver/scripts/quality-gate.ps1` y `quality-gate.sh` ejecutables
+- [ ] `cargo clippy` configurado con `unwrap_used = "deny"` para código de
+      producción (no tests)
+- [ ] README.md de FlowWeaver documenta el comando
+
+#### What NOT to do
+- No incluir Android build aquí (T-3-Hardening-2 lo trata)
+- No introducir tests E2E nuevos aquí (T-3-Hardening-8 lo trata)
+
+---
+
+### T-3-Hardening-2: Decisión sobre src-tauri/gen/android custom code
+
+priority: P-0
+owner: Technical Architect
+status: PENDIENTE — produce AN, no código
+
+#### Objective
+Decidir y documentar dónde vive el código Kotlin custom (MainActivity.kt,
+DriveRelayWorker.kt, FieldCrypto.kt, RelayCrypto.kt, RelayNaming.kt,
+ShareIntentActivity.kt, LocalDb.kt) para que sobreviva a regeneración Tauri
+y permita `cargo tauri android build --release` reproducible.
+
+#### Acceptance Criteria
+- [ ] `operations/architecture-notes/AN-android-custom-code-location.md`
+      con opciones A/B/C evaluadas
+- [ ] Decisión firmada por Technical Architect
+- [ ] Procedimiento de regeneración documentado paso a paso
+- [ ] AR-3-002 (o similar) ratifica la decisión
+
+#### What NOT to do
+- No mover código todavía — esta tarea es documental
+- No reescribir Kotlin a Rust en esta tarea
+
+---
+
+### T-3-Hardening-3: CSP estricta
+
+priority: P-0
+owner: Technical Architect
+status: PENDIENTE
+
+#### Objective
+Reemplazar `"csp": null` en `FlowWeaver/src-tauri/tauri.conf.json` por una
+CSP estricta que sólo permita orígenes conocidos (self + Google OAuth +
+Drive API + futuro proxy de síntesis).
+
+#### Acceptance Criteria
+- [ ] `csp` en `tauri.conf.json` define al menos: `default-src 'self'`,
+      `img-src 'self' data: https:`, `style-src 'self' 'unsafe-inline'`,
+      `script-src 'self'`, `connect-src 'self' https://www.googleapis.com
+      https://oauth2.googleapis.com`
+- [ ] App arranca sin errores en consola de dev
+- [ ] Drive auth (OAuth) funciona end-to-end
+- [ ] PanelA, PanelB, PanelC, EpisodePanel, AnticipatedWorkspace,
+      PrivacyDashboard renderizan sin warnings de CSP
+- [ ] Test E2E manual: 1 captura desde Android → workspace en desktop visible
+
+#### What NOT to do
+- No añadir `unsafe-eval` ni `unsafe-inline` en `script-src` como atajo
+- No añadir dominio del proxy de síntesis hasta que TS-3-007 esté aprobada
+
+---
+
+### T-3-Hardening-4: Key management con keychain del OS (R13 fase 1)
+
+priority: P-0
+owner: Technical Architect + Privacy Guardian
+status: PENDIENTE — depende de AN-crypto-migration-xor-to-aes.md (existente)
+
+#### Objective
+Eliminar la derivación determinística de la clave AES desde `app_data_dir`.
+Integrar `keyring` crate para usar Windows Credential Manager (desktop) y
+Android Keystore (mobile, sub-tarea T-3-Hardening-4b si requiere JNI).
+
+#### Acceptance Criteria
+- [ ] `crypto.rs` lee la clave AES desde keyring del OS, no de `app_data_dir`
+- [ ] Generación de clave nueva en primer arranque (random 256-bit)
+- [ ] Test: copiar `app_data_dir` a otra máquina → datos `fw1a` no
+      descifrables
+- [ ] Test: derivación XOR legacy (`fw0a`) sigue funcionando (rotación,
+      no ruptura)
+- [ ] Privacy Guardian firma revisión
+
+#### Sub-tareas separables
+- T-3-Hardening-4a: desktop (Windows Credential Manager)
+- T-3-Hardening-4b: Android (Android Keystore via JNI) — separable si
+  excede 1 sprint
+
+#### What NOT to do
+- No eliminar el código XOR aquí (esperar a fase 2 + 2 versiones)
+- No tocar el flujo de migración de datos aquí (T-3-Hardening-5)
+
+---
+
+### T-3-Hardening-5: Migración datos XOR→AES (R13 fase 2)
+
+priority: P-0
+owner: Technical Architect + Privacy Guardian
+status: PENDIENTE — depende de T-3-Hardening-4
+
+#### Objective
+Re-cifrar al arrancar todos los registros con magic `fw0a` a `fw1a` con la
+nueva clave del keychain. Proceso idempotente y logueado (depende de
+T-3-Hardening-6 para logging estructurado).
+
+#### Acceptance Criteria
+- [ ] Rutina on-startup detecta registros `fw0a` y los re-cifra a `fw1a`
+- [ ] Proceso idempotente: arrancar 2 veces no duplica trabajo ni rompe datos
+- [ ] Tests: DB legacy → DB migrada → lectura correcta de los mismos campos
+- [ ] Tests: arrancar con DB mixta (algunos `fw0a` + algunos `fw1a`) →
+      sólo migra los `fw0a`
+- [ ] Logueo: emite `tracing::info!` con conteo de registros migrados
+- [ ] Privacy Guardian firma revisión
+
+#### What NOT to do
+- No eliminar `derive_key_xor` ni la rama `fw0a` en `decrypt_any`
+  (rotación: esperar 2 versiones post-migración)
+- No migrar campos no cifrados (domain, category permanecen en claro per D1)
+
+---
+
+### T-3-Hardening-6: Framework de logging estructurado (R15 fase 1)
+
+priority: P-0
+owner: Technical Architect + Privacy Guardian
+status: PENDIENTE
+
+#### Objective
+Introducir `tracing` + `tracing-subscriber` + `tracing-appender` rotativo en
+`app_data_dir/logs/flowweaver-YYYY-MM-DD.log`. Sustituir `eprintln!` y
+`println!` existentes por `tracing::info!`/`warn!`/`error!` con campos
+estructurados.
+
+#### Acceptance Criteria
+- [ ] Dependencias `tracing`, `tracing-subscriber`, `tracing-appender`
+      añadidas a `src-tauri/Cargo.toml`
+- [ ] Subscriber inicializado en `main.rs` o `lib.rs` con file appender
+- [ ] Niveles: `error`, `warn`, `info` (default), `debug` (opt-in via
+      env var `FLOWWEAVER_LOG`)
+- [ ] `drive_relay.rs:330` migrado a `tracing::error!`
+- [ ] El log **nunca** contiene `url`, `title`, ni contenido — sólo
+      `event_id`, `domain`, `category`, `latency_ms`, `error_kind`
+- [ ] Comando Tauri `export_diagnostics()` que comprime los últimos 7 días
+      de log (zip) y devuelve path; no auto-upload
+- [ ] Privacy Guardian firma whitelist de campos
+- [ ] Test: parse del log resultante verifica que no aparecen `url`/`title`
+
+#### What NOT to do
+- No introducir backend remoto de logs
+- No loguear contenido cifrado descifrado en memoria
+
+---
+
+### T-3-Hardening-7: Diagnostics module + métricas locales (R15 fase 2)
+
+priority: P-0
+owner: Technical Architect + Privacy Guardian
+status: PENDIENTE — depende de T-3-Hardening-6
+
+#### Objective
+Crear `src-tauri/src/diagnostics.rs` con contadores en memoria y un histograma
+P50/P95 rotativo (100 muestras) de latencia E2E del relay. Exponer vía comando
+Tauri `get_diagnostics_snapshot()` consumido por Privacy Dashboard.
+
+#### Acceptance Criteria
+- [ ] Contadores: `relay_uploads_ok`, `relay_uploads_fail`,
+      `episodes_detected`, `workspaces_opened`, `workspaces_dismissed`
+- [ ] Histograma rotativo 100 muestras con P50/P95
+- [ ] Comando Tauri `get_diagnostics_snapshot()` retorna snapshot completo
+- [ ] Tests unitarios sobre contadores e histograma
+- [ ] Privacy Dashboard tiene sub-panel "Diagnósticos" que renderiza los
+      datos
+- [ ] **Sin telemetría remota** — todo local, sin upload
+- [ ] Privacy Guardian firma revisión
+
+#### What NOT to do
+- No introducir telemetría remota (eso es T-3-002 con consentimiento, en P-3)
+- No mezclar señales Pattern Detector con Episode Detector (R12 WATCH)
+
+---
+
+### T-3-Hardening-8: Refactor DriveBackend trait + reactivar E2E (R14 fase 1)
+
+priority: P-0
+owner: Technical Architect
+status: PENDIENTE
+
+#### Objective
+Refactorizar `FlowWeaver/src-tauri/src/drive_relay.rs` (~120 LOC) para
+abstraer `trait DriveBackend` con métodos `upload`, `download`, `list`,
+`delete`. Implementación real (`GoogleDriveBackend`) + `MockDriveBackend`
+para tests. Reactivar `e2e_relay_full_cycle_with_mock_drive` (actualmente
+`#[ignore]` con TODO en `e2e_relay_roundtrip.rs:198`).
+
+#### Acceptance Criteria
+- [ ] `trait DriveBackend` definido y exportado
+- [ ] `GoogleDriveBackend` implementa el trait sin cambio de comportamiento
+- [ ] `MockDriveBackend` implementa el trait con estado en memoria
+- [ ] `e2e_relay_full_cycle_with_mock_drive` deja de estar `#[ignore]` y pasa
+- [ ] Cobertura E2E mock cubre: upload OK, upload fail (red caída),
+      download OK, ACK loop, idempotencia, token expirado
+- [ ] `cargo test` pasa sin red
+
+#### What NOT to do
+- No tocar el formato cifrado del relay
+- No cambiar comportamiento observable de `GoogleDriveBackend`
+
+---
+
+### T-3-Hardening-9: Checklist validación relay real (R14 fase 2)
+
+priority: P-0
+owner: QA + Product Owner
+status: PENDIENTE — depende de T-3-Hardening-6 (logs) + T-3-Hardening-8 (mock E2E)
+
+#### Objective
+Ejecutar manualmente los 9 flujos críticos del relay con dispositivo Android
+físico real (Realme OZ4H9HBYKNSWV86H ya emparejado), cuenta Drive real y
+desktop Windows real. Producir checklist firmado.
+
+#### Acceptance Criteria
+- [ ] `operations/qa-reviews/QA-relay-real-validation-checklist.md` creado
+      con los 9 flujos detallados:
+      1. captura → desktop visible
+      2. duplicados
+      3. fallo sin red
+      4. token expirado
+      5. app desktop abierta
+      6. app desktop cerrada
+      7. 3 URLs mismo tema
+      8. 3 URLs temas distintos
+      9. borrado local sin reimportación inesperada
+- [ ] Para cada flujo: pasos exactos, resultado esperado, métricas a anotar
+      (latencia desde logs T-3-Hardening-6), casilla pass/fail
+- [ ] Checklist ejecutado al menos 1 vez con todos los flujos en pass
+- [ ] Reporte `QA-relay-real-validation-report-YYYY-MM-DD.md` firmado
+
+#### What NOT to do
+- No incluir flujos no críticos (eso es Privacy Dashboard UX, P-3)
+- No usar emulador Android — debe ser dispositivo físico
+
+---
+
+### T-3-Hardening-10: UX mínima para prueba con usuarios
+
+priority: P-0
+owner: Functional Analyst → Frontend
+status: PENDIENTE — depende de T-3-Hardening-3 (CSP) + T-3-Hardening-7 (diagnostics)
+
+#### Objective
+Asegurar que el componente de workspace anticipado tiene la UX mínima
+necesaria para una prueba con 5–10 usuarios reales. **NO es UX spec formal.**
+
+#### Acceptance Criteria
+- [ ] Tarjeta de workspace con título inferido del cluster
+- [ ] Botón "¿Por qué este workspace?" muestra los 3+ links que dispararon
+      la detección + categoría + timestamp
+- [ ] Acciones visibles: **Abrir**, **Ignorar**, **Borrar**
+- [ ] Estado de sync visible (icono + tooltip): "Sincronizado hace X",
+      "Sin conexión", "Error"
+- [ ] Error visible y accionable si el relay falla (no toast efímero)
+- [ ] Botón "Exportar diagnósticos" en Privacy Dashboard llama a
+      `export_diagnostics()` (T-3-Hardening-6)
+
+#### What NOT to do
+- No introducir posicionamiento formal ni copy final de marketing
+- No animaciones / motion design
+- No nuevas pantallas más allá de las ya existentes (Panel A/B/C, Privacy
+  Dashboard, AnticipatedWorkspace)
+
+---
+
+### T-3-Hardening-11: Observation Levels Framework (P-2, paralelizable)
+
+priority: P-2
+owner: Technical Architect + Privacy Guardian
+status: PENDIENTE
+
+#### Objective
+Documentar como extensión técnica de D9 los niveles 0–4 de observación.
+**NO es promesa de producto.** Sólo documento técnico interno.
+
+#### Acceptance Criteria
+- [ ] `Project-docs/observation-levels-framework.md` creado con:
+      - L0: Share Intent (implementado, D9)
+      - L1: FS Watcher vigilada (implementado, D9 revisión)
+      - L2: Browser extension opt-in (futuro, post-beta)
+      - L3: Clipboard / active window (futuro, requiere consentimiento
+        granular + entrada en D28)
+      - L4: Power-user automations (futuro, fuera de scope MVP/beta)
+- [ ] Para cada nivel: valor, riesgo de privacidad, dificultad técnica,
+      plataforma, MVP/beta/futuro
+- [ ] Privacy Guardian + Technical Architect firman
+- [ ] Sección referenciada desde Privacy Dashboard (sólo L0 y L1 visibles
+      a usuario)
+
+#### What NOT to do
+- No comprometer fechas de L2/L3/L4
+- No mencionar L2–L4 en copy externo
+- No abrir TS para implementación de L2/L3/L4
+
+---
+
+## Bloque T-3-Validation — P-1 Pre-beta (OD-008, 2026-05-12)
+
+### T-3-Validation-1: Validation spec ligera
+
+priority: P-1
+owner: Product Owner + Privacy Guardian + Technical Architect
+status: PENDIENTE — depende de T-3-Hardening-7 (saber qué métricas son
+        observables localmente)
+
+#### Objective
+Producir documento de máximo 4 páginas que defina las hipótesis a validar
+con usuarios reales, qué significa operacionalmente "workspace útil", qué
+métricas locales se observan, protocolo de prueba y claims prohibidos hasta
+validación.
+
+#### Acceptance Criteria
+- [ ] `Project-docs/validation-spec-pre-beta.md` creado con:
+      - **3 hipótesis máximo** (H1: comprensión sin tutorial; H2: utilidad
+        accionable; H3: no-invasión percibida tras 5 días)
+      - Definición operativa binaria de "workspace útil" (e.g. usuario abre
+        ≥1 link y/o usa el resumen)
+      - **Métricas mínimas locales** (vienen de T-3-Hardening-7):
+        useful_anticipation_rate, time_to_first_click, dismissal_rate,
+        manual_correction_rate
+      - Protocolo: 5–10 usuarios, 1 semana, onboarding 15 min, entrevista
+        cierre 30 min
+      - Señales de "no se entiende" (criterios observables)
+      - **Lista de claims prohibidos** hasta validación:
+        - "Anticipa lo que necesitas" → permitido sólo si H1 valida
+        - "Sin que tengas que hacer nada" → prohibido hasta L2+ implementado
+        - "Privado por diseño" → permitido (verificable hoy)
+- [ ] Firmado por Product Owner + Privacy Guardian + Technical Architect
+
+#### What NOT to do
+- No incluir más de 3 hipótesis
+- No definir "útil" con NPS o métricas abstractas no observables
+- No incluir métricas que requieran telemetría remota
+
+---
+
+### T-3-Validation-2: Protocolo de reclutamiento + entrevista
+
+priority: P-1
+owner: Product Owner + Privacy Guardian
+status: PENDIENTE — depende de T-3-Validation-1
+
+#### Objective
+Producir el material operativo para ejecutar la prueba: guion de entrevista,
+formulario de consentimiento alineado con D14/D25/D28/D30, template de notas.
+
+#### Acceptance Criteria
+- [ ] `operations/qa-reviews/UR-001-pre-beta-protocol.md` creado con:
+      - Guion onboarding (15 min)
+      - Guion entrevista cierre (30 min)
+      - Formulario de consentimiento (D14/D25/D28/D30)
+      - Template de notas por usuario
+      - Criterio de selección (5–10 usuarios, perfil objetivo definido)
+- [ ] Firmado por Privacy Guardian
+
+#### What NOT to do
+- No incluir preguntas sobre features no implementadas
+- No prometer compensación que cree sesgo de complacencia
+
+---
+
+### T-3-Validation-3: Ejecución prueba + reporte UR-001
+
+priority: P-1
+owner: Product Owner + QA
+status: PENDIENTE — depende de T-3-Validation-1, T-3-Validation-2,
+        T-3-Hardening-9 (relay real validado), T-3-Hardening-10 (UX mínima)
+
+#### Objective
+Ejecutar la prueba con 5–10 usuarios reales y producir reporte que valide,
+invalide o muestre resultado parcial sobre H1/H2/H3.
+
+#### Acceptance Criteria
+- [ ] `operations/qa-reviews/UR-001-report-YYYY-MM-DD.md` creado con:
+      - Perfil de usuarios reclutados (anonimizado)
+      - Resultados por hipótesis (validada / invalidada / parcial)
+      - Métricas observadas (vienen de logs locales por usuario)
+      - Citas literales relevantes (anonimizadas)
+      - Lista de "lo que no se entendió"
+      - Recomendación: continuar con backlog Fase 3 original, o abrir OD-009
+        para replanteamiento
+- [ ] Firmado por Product Owner
+
+#### What NOT to do
+- No reescribir vision.md antes de tener este reporte
+- No emitir D33 antes de tener este reporte
+- No abrir bloque mobile (T-3-014..) antes de tener este reporte
